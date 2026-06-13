@@ -488,9 +488,9 @@ function GameBoard({
           type="bat"
         />
         <PlayerCard
-          title={inn.isLMS ? "LMS (Solo)" : "Non-Striker"}
-          name={inn.isLMS ? "— (Last Man Standing)" : inn.nonStriker}
-          stats={inn.nonStriker ? inn.batStats[inn.nonStriker] : undefined}
+          title={inn.isLMS ? "Last Man Standing 🛡️" : "Non-Striker"}
+          name={inn.isLMS ? "— (solo, no rotation)" : inn.nonStriker}
+          stats={!inn.isLMS && inn.nonStriker ? inn.batStats[inn.nonStriker] : undefined}
           type="bat"
         />
         <PlayerCard
@@ -532,12 +532,14 @@ function GameBoard({
           batterMode={iAmBatting}
           batterZerosUsed={iAmBatting && inn.striker ? inn.zeroCount[inn.striker] ?? 0 : 0}
         />
-        {iAmBatting && inn.isLMS && (
+        {iAmBatting && (
           <button
-            onClick={() => send({ type: "declare" })}
+            onClick={() => {
+              if (confirm("Declare this innings now?")) send({ type: "declare" });
+            }}
             className="mt-4 w-full py-3 rounded-lg bg-amber-500 text-amber-950 font-bold"
           >
-            DECLARE INNINGS
+            DECLARE INNINGS{inn.isLMS ? " (LMS)" : ""}
           </button>
         )}
       </div>

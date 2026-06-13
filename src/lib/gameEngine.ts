@@ -259,11 +259,11 @@ export function resolveBall(s: GameState): GameState {
       inn.allOut = true;
       inn.closed = true;
     } else if (inn.wickets === 4) {
-      // LMS: 5th batter plays alone — striker becomes the new one, no rotation
+      // LMS: the not-out batter (current non-striker) continues alone, no selection.
       inn.isLMS = true;
-      inn.striker = null; // need new batter
-      pendingSelect = { type: "batter", forSide: battingSide };
-      nextPhaseGame = "select_new_batter";
+      inn.striker = inn.nonStriker;
+      inn.nonStriker = null;
+      // stay in playing phase; end-of-over check below still applies
     } else {
       inn.striker = null;
       pendingSelect = { type: "batter", forSide: battingSide };
@@ -348,7 +348,6 @@ function replaceInn(s: GameState, idx: number, inn: InningsState) {
 
 export function declareInnings(s: GameState): GameState {
   const inn = { ...s.innings[s.currentInnings]! };
-  if (!inn.isLMS) return s; // only LMS can declare in this engine
   inn.declared = true;
   inn.closed = true;
   return endOfInnings({ ...s, innings: replaceInn(s, s.currentInnings, inn) });
