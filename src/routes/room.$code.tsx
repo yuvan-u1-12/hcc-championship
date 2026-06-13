@@ -276,7 +276,7 @@ function Room() {
       state={state}
       send={(e) => {
         if (sideRef.current === "host") {
-          handleEvent(e);
+          handleEvent({ ...e, _from: myClientIdRef.current } as RoomEvent);
           return;
         }
         sendRef.current?.(e);
