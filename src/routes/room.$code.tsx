@@ -127,8 +127,6 @@ function Room() {
     const mySide = sideRef.current!;
     const cur = stateRef.current;
     const senderId = (e as any)._from as string | undefined;
-    // ignore our own echoes
-    if (senderId && senderId === myClientIdRef.current) return;
 
     if (e.type === "state") {
       // Only accept authoritative state from the known peer (host).
