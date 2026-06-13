@@ -193,6 +193,22 @@ function Room() {
         });
         return;
       }
+      case "pause": {
+        if (cur.paused) return;
+        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now() });
+        return;
+      }
+      case "resume": {
+        if (!cur.paused) return;
+        const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
+        applyAndBroadcast({
+          ...cur,
+          paused: false,
+          pausedAt: null,
+          matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+        });
+        return;
+      }
     }
   }
 
