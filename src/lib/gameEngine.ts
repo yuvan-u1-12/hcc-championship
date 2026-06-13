@@ -348,7 +348,6 @@ function replaceInn(s: GameState, idx: number, inn: InningsState) {
 
 export function declareInnings(s: GameState): GameState {
   const inn = { ...s.innings[s.currentInnings]! };
-  if (!inn.isLMS) return s; // only LMS can declare in this engine
   inn.declared = true;
   inn.closed = true;
   return endOfInnings({ ...s, innings: replaceInn(s, s.currentInnings, inn) });
