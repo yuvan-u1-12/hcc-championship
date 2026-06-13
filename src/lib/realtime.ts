@@ -1,21 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-export type RoomEvent =
+type RoomEventBase =
   | { type: "hello"; side: "host" | "away"; clientId: string; teamId?: string | null }
-  | { type: "state"; state: any } // host -> away authoritative
-  | { type: "input"; side: "host" | "away"; value: number } // away -> host (or host self)
+  | { type: "state"; state: any }
+  | { type: "input"; side: "host" | "away"; value: number }
   | { type: "select"; kind: "openers" | "bowler" | "batter"; payload: any; from: "host" | "away" }
   | { type: "toss_call"; call: "heads" | "tails" }
   | { type: "toss_choice"; choice: "bat" | "bowl" }
   | { type: "follow_on"; enforce: boolean }
-  | { type: "next_innings_choice"; battingSide: "host" | "away" } // for innings 3
+  | { type: "next_innings_choice"; battingSide: "host" | "away" }
   | { type: "declare" }
   | { type: "chat"; side: "host" | "away"; text: string }
   | { type: "leave"; side: "host" | "away" }
   | { type: "pause" }
   | { type: "resume" }
   | { type: "ping" };
+
+export type RoomEvent = RoomEventBase & { _from?: string };
 
 export function joinRoom(
   roomCode: string,
