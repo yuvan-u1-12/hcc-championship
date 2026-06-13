@@ -471,18 +471,6 @@ export function endOfInnings(s: GameState, result?: string, winner?: GameState["
     lastActionAt: Date.now(),
   };
 }
-  // innings 3
-  return {
-    ...s,
-    phase: "innings_break",
-    hostInput: null,
-    awayInput: null,
-    hostLocked: false,
-    awayLocked: false,
-    pendingSelect: undefined,
-    lastActionAt: Date.now(),
-  };
-}
 
 export function finalWinner(s: GameState): GameState["winner"] {
   const t = totalsBySide(s);
