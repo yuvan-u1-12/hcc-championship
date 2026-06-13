@@ -16,6 +16,7 @@ import {
   leadTrailLabel,
   finalizeResult,
   teamForSide,
+  computeTarget,
 } from "@/lib/gameEngine";
 import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
@@ -85,6 +86,15 @@ function Room() {
     const id = setInterval(() => {
       const s = stateRef.current;
       if (!s || s.phase === "match_over" || s.phase === "lobby") return;
+      // auto-pause when idle > 60s during active play
+      if (
+        !s.paused &&
+        (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
+        Date.now() - s.lastActionAt > 60_000
+      ) {
+        applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+        return;
+      }
       const ns = checkTimeUp(s);
       if (ns !== s) {
         applyAndBroadcast(ns);
@@ -381,6 +391,16 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
         </span>
+        {state.currentInnings === 4 && inn && (() => {
+          const tgt = computeTarget(state);
+          if (tgt === null) return null;
+          const need = tgt - inn.runs;
+          return (
+            <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200">
+              Target {tgt} · Need {need} run{need === 1 ? "" : "s"}
+            </span>
+          );
+        })()}
       </div>
     </header>
   );
