@@ -27,6 +27,9 @@ export const Route = createFileRoute("/room/$code")({
   component: Room,
 });
 
+const MAX_CHAT_LEN = 200;
+const MAX_CHAT_HISTORY = 50;
+
 function Room() {
   const { code } = useParams({ from: "/room/$code" });
   const [side, setSide] = useState<Side | null>(null);
@@ -35,6 +38,8 @@ function Room() {
   const stateRef = useRef<GameState | null>(null);
   const sendRef = useRef<((e: RoomEvent) => void) | null>(null);
   const sideRef = useRef<Side | null>(null);
+  const myClientIdRef = useRef<string>(Math.random().toString(36).slice(2) + Date.now().toString(36));
+  const peerClientIdRef = useRef<string | null>(null);
   const [, force] = useState(0);
 
   // hydrate identity + cached state
