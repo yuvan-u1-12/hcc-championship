@@ -193,6 +193,22 @@ function Room() {
         });
         return;
       }
+      case "pause": {
+        if (cur.paused) return;
+        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now() });
+        return;
+      }
+      case "resume": {
+        if (!cur.paused) return;
+        const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
+        applyAndBroadcast({
+          ...cur,
+          paused: false,
+          pausedAt: null,
+          matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+        });
+        return;
+      }
     }
   }
 
@@ -305,7 +321,8 @@ function RoomUI({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-white">
-      <TopBar state={state} mySide={mySide} code={code} />
+      <TopBar state={state} mySide={mySide} code={code} send={send} />
+      {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
           <Scorecard state={state} />
@@ -323,16 +340,18 @@ function RoomUI({
 }
 
 // ============ Top Bar ============
-function TopBar({ state, mySide, code }: { state: GameState; mySide: Side; code: string }) {
+function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side; code: string; send: (e: RoomEvent) => void }) {
   const hostTeam = getTeam(state.hostTeamId!);
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - Date.now()) : 30 * 60 * 1000;
+  const nowRef = state.paused && state.pausedAt ? state.pausedAt : Date.now();
+  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - nowRef) : 30 * 60 * 1000;
   const mm = Math.floor(timeLeft / 60000);
   const ss = Math.floor((timeLeft % 60000) / 1000);
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
+  const canPause = state.phase !== "lobby" && state.phase !== "toss" && state.phase !== "match_over";
 
   return (
     <header className="border-b border-white/10 px-4 py-2 flex flex-wrap items-center gap-3 text-sm bg-black/30">
@@ -350,9 +369,14 @@ function TopBar({ state, mySide, code }: { state: GameState; mySide: Side; code:
             Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver}
           </span>
         )}
-        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""}`}>
-          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""} ${state.paused ? "text-amber-300" : ""}`}>
+          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}{state.paused ? " ⏸" : ""}
         </span>
+        {canPause && !state.paused && (
+          <button onClick={() => send({ type: "pause" })} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/40">
+            ⏸ Pause
+          </button>
+        )}
         {isIdle && <span className="text-amber-400 text-xs">⏸ idle</span>}
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
@@ -1122,6 +1146,58 @@ function ChatBox({
           💬 {state.chat.length}
         </button>
       )}
+    </div>
+  );
+}
+
+// ============ Pause Overlay ============
+function PauseOverlay({
+  state,
+  mySide,
+  send,
+}: {
+  state: GameState;
+  mySide: Side;
+  send: (e: RoomEvent) => void;
+}) {
+  const [showCard, setShowCard] = useState(false);
+  return (
+    <div className="fixed inset-0 z-40 bg-slate-950/90 backdrop-blur-sm flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        {showCard ? (
+          <div>
+            <div className="p-4 sticky top-0 bg-slate-950/80 border-b border-white/10 flex justify-between items-center">
+              <h2 className="text-lg font-bold">⏸ Match Paused — Scorecard</h2>
+              <button onClick={() => setShowCard(false)} className="px-3 py-1 rounded bg-white/10 text-sm">
+                Back
+              </button>
+            </div>
+            <Scorecard state={state} />
+          </div>
+        ) : (
+          <div className="min-h-full flex flex-col items-center justify-center p-6">
+            <div className="text-6xl mb-4">⏸</div>
+            <div className="text-3xl font-black mb-2">Match Paused</div>
+            <div className="text-white/60 mb-8 text-center">
+              Timer is frozen. Either side can resume.
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+              <button
+                onClick={() => setShowCard(true)}
+                className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
+              >
+                📊 View Scorecard
+              </button>
+              <button
+                onClick={() => send({ type: "resume" })}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
+              >
+                ▶ Resume Match
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
