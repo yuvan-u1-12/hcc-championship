@@ -211,7 +211,13 @@ function Room() {
       mySide={side}
       myTeamId={teamId}
       state={state}
-      send={(e) => sendRef.current?.(e)}
+      send={(e) => {
+        if (sideRef.current === "host") {
+          handleEvent(e);
+          return;
+        }
+        sendRef.current?.(e);
+      }}
       onTeamPick={(id) => {
         setTeamId(id);
         if (side === "host") {
