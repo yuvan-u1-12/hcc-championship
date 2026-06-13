@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Hand Cricket Championship" },
+      { name: "description", content: "Real-time multiplayer Hand Cricket game with test match format and live score updates." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Hand Cricket Championship" },
+      { property: "og:description", content: "Real-time multiplayer Hand Cricket game with test match format and live score updates." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Hand Cricket Championship" },
+      { name: "twitter:description", content: "Real-time multiplayer Hand Cricket game with test match format and live score updates." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/010b18e9-96cf-4450-bf04-6351e8e4f4b0/id-preview-45860eac--4fe4c1ed-3440-4097-b97e-aac58908190b.lovable.app-1781376978569.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/010b18e9-96cf-4450-bf04-6351e8e4f4b0/id-preview-45860eac--4fe4c1ed-3440-4097-b97e-aac58908190b.lovable.app-1781376978569.png" },
     ],
     links: [
       {
