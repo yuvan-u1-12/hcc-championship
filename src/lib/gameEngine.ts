@@ -367,13 +367,19 @@ export function totalsBySide(s: GameState): { host: number; away: number } {
 
 export function computeTarget(s: GameState): number | null {
   // applies to 4th innings chasing
-  const t = totalsBySide(s);
   const inn4 = s.innings[4];
   if (!inn4) return null;
   const chasingSide = inn4.battingSide;
-  const defendingSide: Side = chasingSide === "host" ? "away" : "host";
-  // target = defending total + 1
-  return (defendingSide === "host" ? t.host : t.away) + 1;
+  // target = (defending side's combined runs in innings 1-3) - (chasing side's runs in innings 1-3) + 1
+  let chasingPrev = 0;
+  let defendingTotal = 0;
+  for (let i = 1; i <= 3; i++) {
+    const inn = s.innings[i];
+    if (!inn) continue;
+    if (inn.battingSide === chasingSide) chasingPrev += inn.runs;
+    else defendingTotal += inn.runs;
+  }
+  return defendingTotal - chasingPrev + 1;
 }
 
 export function endOfInnings(s: GameState, result?: string, winner?: GameState["winner"]): GameState {
