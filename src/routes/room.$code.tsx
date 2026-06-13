@@ -488,9 +488,9 @@ function GameBoard({
           type="bat"
         />
         <PlayerCard
-          title={inn.isLMS ? "LMS (Solo)" : "Non-Striker"}
-          name={inn.isLMS ? "— (Last Man Standing)" : inn.nonStriker}
-          stats={inn.nonStriker ? inn.batStats[inn.nonStriker] : undefined}
+          title={inn.isLMS ? "Last Man Standing 🛡️" : "Non-Striker"}
+          name={inn.isLMS ? "— (solo, no rotation)" : inn.nonStriker}
+          stats={!inn.isLMS && inn.nonStriker ? inn.batStats[inn.nonStriker] : undefined}
           type="bat"
         />
         <PlayerCard
