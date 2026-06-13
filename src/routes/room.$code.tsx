@@ -126,9 +126,19 @@ function Room() {
   function handleEvent(e: RoomEvent) {
     const mySide = sideRef.current!;
     const cur = stateRef.current;
+    const senderId = (e as any)._from as string | undefined;
+    // ignore our own echoes
+    if (senderId && senderId === myClientIdRef.current) return;
+
     if (e.type === "state") {
+      // Only accept authoritative state from the known peer (host).
+      // Away tracks the host as its peer; reject state from unknown clients.
+      if (mySide === "host") return; // host never accepts state from anyone
+      if (!senderId) return;
+      if (peerClientIdRef.current && senderId !== peerClientIdRef.current) return;
+      // first state we ever see locks in the peer (host) clientId
+      if (!peerClientIdRef.current) peerClientIdRef.current = senderId;
       const incoming = e.state as GameState;
-      // only accept if newer (or away has no state)
       if (!cur || incoming.version >= cur.version) {
         setState(incoming);
         stateRef.current = incoming;
@@ -136,21 +146,32 @@ function Room() {
       return;
     }
     if (e.type === "hello") {
+      // remember the peer's clientId from the handshake
+      if (e.side !== mySide && senderId) {
+        peerClientIdRef.current = senderId;
+      }
       if (mySide === "host" && e.side === "away") {
         let s = cur ?? createInitialState(code);
         s = { ...s, awayTeamId: e.teamId ?? s.awayTeamId, awayConnected: true, hostConnected: true };
-        // auto-progress to toss when both teams chosen
         if (s.hostTeamId && s.awayTeamId && s.phase === "lobby") {
           s = { ...s, phase: "toss" };
         }
         applyAndBroadcast(s);
-      } else if (mySide === "away" && e.side === "host") {
-        // away saying hi to host already; reply by sending current cached if newer
       }
       return;
     }
     // only host applies engine transitions
     if (mySide !== "host" || !cur) return;
+    // For sender-attributed events, derive the side from the sender's clientId.
+    // The host is the only client that authors state, so any event from a
+    // non-host sender must be attributed to "away" regardless of the payload.
+    const senderSide: Side | null = senderId
+      ? senderId === myClientIdRef.current
+        ? "host"
+        : peerClientIdRef.current && senderId === peerClientIdRef.current
+          ? "away"
+          : null
+      : null;
     switch (e.type) {
       case "toss_call": {
         const result: "heads" | "tails" = Math.random() < 0.5 ? "heads" : "tails";
@@ -164,7 +185,6 @@ function Room() {
         return;
       }
       case "toss_choice": {
-        // applied by winning side
         const battingSide: Side =
           e.choice === "bat" ? cur.tossWinner! : cur.tossWinner === "host" ? "away" : "host";
         const s1 = startInnings({ ...cur, tossChoice: e.choice }, 1, battingSide);
@@ -182,7 +202,12 @@ function Room() {
         return;
       }
       case "input": {
-        let s = lockInput(cur, e.side, e.value);
+        // derive side from sender, not from payload (prevents spoofing)
+        const actualSide: Side | null =
+          senderSide ?? (e.side === "host" || e.side === "away" ? e.side : null);
+        if (!actualSide) return;
+        if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
+        let s = lockInput(cur, actualSide, e.value);
         if (s.hostLocked && s.awayLocked) {
           s = resolveBall(s);
         }
@@ -190,7 +215,6 @@ function Room() {
         return;
       }
       case "follow_on": {
-        // Team A enforces; team B (2nd innings batting side) bats again
         const teamBSide = cur.innings[2]!.battingSide;
         applyAndBroadcast(startInnings({ ...cur, followOnOffered: true }, 3, teamBSide));
         return;
@@ -204,10 +228,16 @@ function Room() {
         return;
       }
       case "chat": {
-        applyAndBroadcast({
-          ...cur,
-          chat: [...cur.chat, { side: e.side, text: e.text, t: Date.now() }],
-        });
+        // derive sender side from clientId; cap message length and history
+        const fromSide: Side | null =
+          senderSide ?? (e.side === "host" || e.side === "away" ? e.side : null);
+        if (!fromSide) return;
+        if (senderSide && senderSide !== e.side) return;
+        const text = typeof e.text === "string" ? e.text.slice(0, MAX_CHAT_LEN).trim() : "";
+        if (!text) return;
+        const nextChat = [...cur.chat, { side: fromSide, text, t: Date.now() }];
+        if (nextChat.length > MAX_CHAT_HISTORY) nextChat.splice(0, nextChat.length - MAX_CHAT_HISTORY);
+        applyAndBroadcast({ ...cur, chat: nextChat });
         return;
       }
       case "pause": {
