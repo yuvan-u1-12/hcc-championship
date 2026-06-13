@@ -436,6 +436,41 @@ export function endOfInnings(s: GameState, result?: string, winner?: GameState["
       lastActionAt: Date.now(),
     };
   }
+  // innings 3 — check for innings victory before starting 4th
+  // The side that has batted only once: if their total > other side's two-innings cumulative, they win by an innings.
+  const t = totalsBySide(s);
+  const inn3 = s.innings[3]!;
+  const sideBattedTwice: Side = inn3.battingSide; // batted in 2 of 3 innings (either 1+3 or 2+3)
+  const sideBattedOnce: Side = sideBattedTwice === "host" ? "away" : "host";
+  const onceTotal = sideBattedOnce === "host" ? t.host : t.away;
+  const twiceTotal = sideBattedTwice === "host" ? t.host : t.away;
+  if (onceTotal > twiceTotal) {
+    const winnerName = teamForSide(s, sideBattedOnce)!.name;
+    const margin = onceTotal - twiceTotal;
+    return {
+      ...s,
+      phase: "match_over",
+      result: `${winnerName} wins by an innings and ${margin} run${margin === 1 ? "" : "s"}`,
+      winner: sideBattedOnce,
+      hostInput: null,
+      awayInput: null,
+      hostLocked: false,
+      awayLocked: false,
+      pendingSelect: undefined,
+      lastActionAt: Date.now(),
+    };
+  }
+  return {
+    ...s,
+    phase: "innings_break",
+    hostInput: null,
+    awayInput: null,
+    hostLocked: false,
+    awayLocked: false,
+    pendingSelect: undefined,
+    lastActionAt: Date.now(),
+  };
+}
   // innings 3
   return {
     ...s,
