@@ -251,6 +251,7 @@ function Room() {
           paused: false,
           pausedAt: null,
           matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+          lastActionAt: Date.now(),
         });
         return;
       }
