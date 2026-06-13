@@ -499,6 +499,7 @@ export function startNextInnings(
 
 export function checkTimeUp(s: GameState): GameState {
   if (!s.matchEndsAt) return s;
+  if (s.paused) return s;
   if (Date.now() < s.matchEndsAt) return s;
   if (s.phase === "match_over") return s;
   // time up
