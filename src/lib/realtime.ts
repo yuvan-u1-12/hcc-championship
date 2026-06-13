@@ -13,6 +13,8 @@ export type RoomEvent =
   | { type: "declare" }
   | { type: "chat"; side: "host" | "away"; text: string }
   | { type: "leave"; side: "host" | "away" }
+  | { type: "pause" }
+  | { type: "resume" }
   | { type: "ping" };
 
 export function joinRoom(
