@@ -339,16 +339,18 @@ function RoomUI({
 }
 
 // ============ Top Bar ============
-function TopBar({ state, mySide, code }: { state: GameState; mySide: Side; code: string }) {
+function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side; code: string; send: (e: RoomEvent) => void }) {
   const hostTeam = getTeam(state.hostTeamId!);
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - Date.now()) : 30 * 60 * 1000;
+  const nowRef = state.paused && state.pausedAt ? state.pausedAt : Date.now();
+  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - nowRef) : 30 * 60 * 1000;
   const mm = Math.floor(timeLeft / 60000);
   const ss = Math.floor((timeLeft % 60000) / 1000);
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
+  const canPause = state.phase !== "lobby" && state.phase !== "toss" && state.phase !== "match_over";
 
   return (
     <header className="border-b border-white/10 px-4 py-2 flex flex-wrap items-center gap-3 text-sm bg-black/30">
@@ -366,9 +368,14 @@ function TopBar({ state, mySide, code }: { state: GameState; mySide: Side; code:
             Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver}
           </span>
         )}
-        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""}`}>
-          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""} ${state.paused ? "text-amber-300" : ""}`}>
+          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}{state.paused ? " ⏸" : ""}
         </span>
+        {canPause && !state.paused && (
+          <button onClick={() => send({ type: "pause" })} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/40">
+            ⏸ Pause
+          </button>
+        )}
         {isIdle && <span className="text-amber-400 text-xs">⏸ idle</span>}
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
