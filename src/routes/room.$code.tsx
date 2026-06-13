@@ -532,12 +532,14 @@ function GameBoard({
           batterMode={iAmBatting}
           batterZerosUsed={iAmBatting && inn.striker ? inn.zeroCount[inn.striker] ?? 0 : 0}
         />
-        {iAmBatting && inn.isLMS && (
+        {iAmBatting && (
           <button
-            onClick={() => send({ type: "declare" })}
+            onClick={() => {
+              if (confirm("Declare this innings now?")) send({ type: "declare" });
+            }}
             className="mt-4 w-full py-3 rounded-lg bg-amber-500 text-amber-950 font-bold"
           >
-            DECLARE INNINGS
+            DECLARE INNINGS{inn.isLMS ? " (LMS)" : ""}
           </button>
         )}
       </div>
