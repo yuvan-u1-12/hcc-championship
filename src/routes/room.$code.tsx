@@ -851,7 +851,9 @@ function InningsBreak({
     // back to team A (first innings batting side), unless follow-on
     nextSide = state.firstInningsBattingSide ?? (state.innings[1]!.battingSide);
   } else {
-    nextSide = state.innings[2]!.battingSide; // team B for 4th
+    // 4th innings: opposite of whoever batted in the 3rd innings
+    const inn3Side = state.innings[3]!.battingSide;
+    nextSide = inn3Side === "host" ? "away" : "host";
   }
   return (
     <div className="p-8 max-w-2xl mx-auto text-center">
