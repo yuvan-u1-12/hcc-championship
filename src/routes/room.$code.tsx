@@ -85,6 +85,15 @@ function Room() {
     const id = setInterval(() => {
       const s = stateRef.current;
       if (!s || s.phase === "match_over" || s.phase === "lobby") return;
+      // auto-pause when idle > 60s during active play
+      if (
+        !s.paused &&
+        (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
+        Date.now() - s.lastActionAt > 60_000
+      ) {
+        applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+        return;
+      }
       const ns = checkTimeUp(s);
       if (ns !== s) {
         applyAndBroadcast(ns);
