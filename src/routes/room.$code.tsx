@@ -980,8 +980,8 @@ function BattingTable({ inn }: { inn: any }) {
           {Object.entries(perPlayer).map(([name, p]) => {
             const out = inn.batStats[name]?.out;
             return (
-              <>
-                <tr key={name + "n"} className="border-t border-white/10">
+              <Fragment key={name}>
+                <tr className="border-t border-white/10">
                   <td className="p-1 font-semibold" rowSpan={2}>
                     {name} {out ? "" : "*"}
                   </td>
@@ -995,7 +995,7 @@ function BattingTable({ inn }: { inn: any }) {
                     </td>
                   ))}
                 </tr>
-                <tr key={name + "c"} className="border-t border-white/5">
+                <tr className="border-t border-white/5">
                   <td className="text-purple-300">CRAZY</td>
                   <td className="text-center">{p.crazy.r}</td>
                   <td className="text-center">{p.crazy.b}</td>
@@ -1006,7 +1006,7 @@ function BattingTable({ inn }: { inn: any }) {
                     </td>
                   ))}
                 </tr>
-              </>
+              </Fragment>
             );
           })}
         </tbody>
