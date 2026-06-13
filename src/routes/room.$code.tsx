@@ -321,7 +321,8 @@ function RoomUI({
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-white">
-      <TopBar state={state} mySide={mySide} code={code} />
+      <TopBar state={state} mySide={mySide} code={code} send={send} />
+      {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
           <Scorecard state={state} />
