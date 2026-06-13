@@ -391,6 +391,16 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
         </span>
+        {state.currentInnings === 4 && inn && (() => {
+          const tgt = computeTarget(state);
+          if (tgt === null) return null;
+          const need = tgt - inn.runs;
+          return (
+            <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-200">
+              Target {tgt} · Need {need} run{need === 1 ? "" : "s"}
+            </span>
+          );
+        })()}
       </div>
     </header>
   );
