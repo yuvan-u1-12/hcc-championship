@@ -1149,3 +1149,55 @@ function ChatBox({
     </div>
   );
 }
+
+// ============ Pause Overlay ============
+function PauseOverlay({
+  state,
+  mySide,
+  send,
+}: {
+  state: GameState;
+  mySide: Side;
+  send: (e: RoomEvent) => void;
+}) {
+  const [showCard, setShowCard] = useState(false);
+  return (
+    <div className="fixed inset-0 z-40 bg-slate-950/90 backdrop-blur-sm flex flex-col">
+      <div className="flex-1 overflow-y-auto">
+        {showCard ? (
+          <div>
+            <div className="p-4 sticky top-0 bg-slate-950/80 border-b border-white/10 flex justify-between items-center">
+              <h2 className="text-lg font-bold">⏸ Match Paused — Scorecard</h2>
+              <button onClick={() => setShowCard(false)} className="px-3 py-1 rounded bg-white/10 text-sm">
+                Back
+              </button>
+            </div>
+            <Scorecard state={state} />
+          </div>
+        ) : (
+          <div className="min-h-full flex flex-col items-center justify-center p-6">
+            <div className="text-6xl mb-4">⏸</div>
+            <div className="text-3xl font-black mb-2">Match Paused</div>
+            <div className="text-white/60 mb-8 text-center">
+              Timer is frozen. Either side can resume.
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+              <button
+                onClick={() => setShowCard(true)}
+                className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
+              >
+                📊 View Scorecard
+              </button>
+              <button
+                onClick={() => send({ type: "resume" })}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
+              >
+                ▶ Resume Match
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
