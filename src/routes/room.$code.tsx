@@ -16,6 +16,7 @@ import {
   leadTrailLabel,
   finalizeResult,
   teamForSide,
+  computeTarget,
 } from "@/lib/gameEngine";
 import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
