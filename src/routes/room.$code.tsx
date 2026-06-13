@@ -970,7 +970,14 @@ function BattingTable({ inn }: { inn: any }) {
       if (ball.isSquare) bucket.sq[ball.runs] = (bucket.sq[ball.runs] ?? 0) + 1;
     }
   }
-  const sqKeys = [1, 4, 9, 16, 25, 36, 49, 64, 81, 100];
+  const groups: { label: string; keys: number[] }[] = [
+    { label: "Low (1²-4²)", keys: [1, 4, 9, 16] },
+    { label: "Basic (5²-7²)", keys: [25, 36, 49] },
+    { label: "High (8²-9²)", keys: [64, 81] },
+    { label: "100", keys: [100] },
+  ];
+  const sumGroup = (sq: Record<number, number>, keys: number[]) =>
+    keys.reduce((a, k) => a + (sq[k] ?? 0), 0);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs">
@@ -981,8 +988,8 @@ function BattingTable({ inn }: { inn: any }) {
             <th>R</th>
             <th>B</th>
             <th>Dots</th>
-            {sqKeys.map((k) => (
-              <th key={k}>{k}²</th>
+            {groups.map((g) => (
+              <th key={g.label}>{g.label}</th>
             ))}
           </tr>
         </thead>
@@ -999,9 +1006,9 @@ function BattingTable({ inn }: { inn: any }) {
                   <td className="text-center">{p.normal.r}</td>
                   <td className="text-center">{p.normal.b}</td>
                   <td className="text-center">{p.normal.d}</td>
-                  {sqKeys.map((k) => (
-                    <td key={k} className="text-center">
-                      {p.normal.sq[k] ?? 0}
+                  {groups.map((g) => (
+                    <td key={g.label} className="text-center">
+                      {sumGroup(p.normal.sq, g.keys)}
                     </td>
                   ))}
                 </tr>
@@ -1010,9 +1017,9 @@ function BattingTable({ inn }: { inn: any }) {
                   <td className="text-center">{p.crazy.r}</td>
                   <td className="text-center">{p.crazy.b}</td>
                   <td className="text-center">{p.crazy.d}</td>
-                  {sqKeys.map((k) => (
-                    <td key={k} className="text-center">
-                      {p.crazy.sq[k] ?? 0}
+                  {groups.map((g) => (
+                    <td key={g.label} className="text-center">
+                      {sumGroup(p.crazy.sq, g.keys)}
                     </td>
                   ))}
                 </tr>
