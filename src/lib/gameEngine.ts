@@ -102,6 +102,7 @@ export function setOpeners(s: GameState, striker: string, nonStriker: string): G
   return {
     ...s,
     innings,
+    phase: "select_bowler",
     pendingSelect: { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings })! },
     lastActionAt: Date.now(),
   };
