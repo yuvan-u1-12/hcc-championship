@@ -69,11 +69,13 @@ function Room() {
   // realtime
   useEffect(() => {
     if (!side) return;
-    const { channel, send } = joinRoom(code, handleEvent);
+    const { channel, send: rawSend } = joinRoom(code, handleEvent);
+    // wrap send so every outgoing event carries our clientId
+    const send = (e: RoomEvent) => rawSend({ ...e, _from: myClientIdRef.current } as RoomEvent);
     sendRef.current = send;
     // announce
     setTimeout(() => {
-      send({ type: "hello", side: sideRef.current!, clientId: Math.random().toString(36), teamId });
+      send({ type: "hello", side: sideRef.current!, clientId: myClientIdRef.current, teamId });
     }, 300);
     return () => leaveRoom(channel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
