@@ -109,6 +109,8 @@ export interface GameState {
   matchStartedAt: number | null;
   matchEndsAt: number | null; // matchStartedAt + 30min
   lastActionAt: number;
+  paused?: boolean;
+  pausedAt?: number | null;
   // chat
   chat: { side: Side; text: string; t: number }[];
   // last result for UI display
