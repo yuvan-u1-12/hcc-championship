@@ -183,4 +183,6 @@ export const TEAMS: Team[] = [
 
 export const getTeam = (id: string): Team | undefined => TEAMS.find((t) => t.id === id);
 export const getEligibleBatters = (t: Team): Player[] => t.players.slice(0, 5);
-export const getEligibleBowlers = (t: Team): Player[] => t.players; // anyone can bowl
+// Only all-rounders and pure bowlers can bowl. Pure batters (Bat) and wicket-keepers (WK) cannot.
+export const getEligibleBowlers = (t: Team): Player[] =>
+  t.players.filter((p) => p.role !== "Bat" && p.role !== "WK");
