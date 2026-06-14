@@ -132,12 +132,31 @@ export function setBowler(s: GameState, bowler: string): GameState {
 
 export function setNewBatter(s: GameState, name: string): GameState {
   const inn = { ...s.innings[s.currentInnings]! };
-  // incoming batter goes to striker end (replaces dismissed)
-  inn.striker = name;
+  const toNonStriker = s.pendingSelect?.toNonStriker === true;
+  if (toNonStriker) {
+    inn.nonStriker = name;
+  } else {
+    // incoming batter goes to striker end (replaces dismissed)
+    inn.striker = name;
+  }
   inn.batStats[name] = newBatStats();
   inn.yetToBat = inn.yetToBat.filter((n) => n !== name);
   const innings = [...s.innings];
   innings[s.currentInnings] = inn;
+  // If we still need a bowler (e.g. wicket fell on last ball of over), chain into bowler selection
+  if (!inn.bowler) {
+    return {
+      ...s,
+      innings,
+      phase: "select_bowler",
+      pendingSelect: { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings })! },
+      hostInput: null,
+      awayInput: null,
+      hostLocked: false,
+      awayLocked: false,
+      lastActionAt: Date.now(),
+    };
+  }
   return {
     ...s,
     innings,
@@ -298,8 +317,18 @@ export function resolveBall(s: GameState): GameState {
       inn.nonStriker = tmp;
     }
     if (!inn.closed) {
-      pendingSelect = { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings: replaceInn(s, innIdx, inn) })! };
-      nextPhaseGame = "select_bowler";
+      // If wicket fell on this last ball, striker is null and non-striker is the survivor.
+      // Promote the survivor to striker and request the new batter for the non-striker end first,
+      // then bowler selection will be chained inside setNewBatter.
+      if (!inn.isLMS && inn.striker === null && inn.nonStriker) {
+        inn.striker = inn.nonStriker;
+        inn.nonStriker = null;
+        pendingSelect = { type: "batter", forSide: battingSide, toNonStriker: true };
+        nextPhaseGame = "select_new_batter";
+      } else {
+        pendingSelect = { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings: replaceInn(s, innIdx, inn) })! };
+        nextPhaseGame = "select_bowler";
+      }
     }
   } else {
     inn.ballInOver += 1;

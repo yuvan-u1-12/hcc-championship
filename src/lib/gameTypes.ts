@@ -104,6 +104,7 @@ export interface GameState {
   pendingSelect?: {
     type: "bowler" | "batter" | "openers";
     forSide: Side;
+    toNonStriker?: boolean;
   };
   // timer
   matchStartedAt: number | null;
