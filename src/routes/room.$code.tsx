@@ -69,7 +69,55 @@ function Room() {
   // realtime
   useEffect(() => {
     if (!side) return;
-    const { channel, send: rawSend } = joinRoom(code, handleEvent);
+    const { channel, send: rawSend } = joinRoom(
+      code,
+      handleEvent,
+      { side: sideRef.current!, clientId: myClientIdRef.current },
+      {
+        onJoin: ({ side: peerSide, clientId }) => {
+          if (peerSide === sideRef.current) return;
+          peerClientIdRef.current = clientId;
+          // host: if paused due to disconnect of this side, auto-resume
+          if (sideRef.current === "host") {
+            const cur = stateRef.current;
+            if (cur && cur.paused && cur.pausedReason === "disconnect" && cur.disconnectedSide === peerSide) {
+              const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
+              applyAndBroadcast({
+                ...cur,
+                paused: false,
+                pausedAt: null,
+                pausedReason: undefined,
+                disconnectedSide: null,
+                matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+                lastActionAt: Date.now() + 5000,
+                hostConnected: true,
+                awayConnected: true,
+              });
+            } else if (cur) {
+              // ensure connected flags accurate and rebroadcast state for hydration
+              applyAndBroadcast({ ...cur, hostConnected: true, awayConnected: true });
+            }
+          }
+        },
+        onLeave: ({ side: peerSide }) => {
+          if (peerSide === sideRef.current) return;
+          if (sideRef.current !== "host") return;
+          const cur = stateRef.current;
+          if (!cur) return;
+          if (cur.phase === "lobby" || cur.phase === "match_over") return;
+          if (cur.paused) return;
+          applyAndBroadcast({
+            ...cur,
+            paused: true,
+            pausedAt: Date.now(),
+            pausedReason: "disconnect",
+            disconnectedSide: peerSide,
+            awayConnected: peerSide === "away" ? false : cur.awayConnected,
+            hostConnected: peerSide === "host" ? false : cur.hostConnected,
+          });
+        },
+      },
+    );
     // wrap send so every outgoing event carries our clientId
     const send = (e: RoomEvent) => rawSend({ ...e, _from: myClientIdRef.current } as RoomEvent);
     sendRef.current = send;
