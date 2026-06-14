@@ -1161,14 +1161,22 @@ function ChatBox({
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
+  const [lastSeen, setLastSeen] = useState(state.chat.length);
   const recent = state.chat.slice(-30);
+  // unread = messages from the OTHER side after lastSeen
+  const unread = state.chat
+    .slice(lastSeen)
+    .filter((m) => m.side !== mySide).length;
+  useEffect(() => {
+    if (open) setLastSeen(state.chat.length);
+  }, [open, state.chat.length]);
   return (
-    <div className="fixed bottom-3 right-3 z-50">
+    <div className="fixed bottom-20 right-3 z-50">
       {open ? (
         <div className="w-72 h-80 rounded-xl border border-white/10 bg-slate-900/95 shadow-2xl flex flex-col">
           <div className="px-3 py-2 border-b border-white/10 flex justify-between text-sm">
             <span>Match Chat</span>
-            <button onClick={() => setOpen(false)} className="text-white/60">✕</button>
+            <button onClick={() => { setOpen(false); setLastSeen(state.chat.length); }} className="text-white/60">✕</button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 text-xs space-y-1">
             {recent.map((m, i) => (
@@ -1201,9 +1209,12 @@ function ChatBox({
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold shadow-lg"
+          className="relative rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold shadow-lg"
         >
           💬 {state.chat.length}
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-slate-950 animate-pulse" />
+          )}
         </button>
       )}
     </div>
