@@ -1117,30 +1117,70 @@ function BattingTable({ inn }: { inn: any }) {
 }
 
 function BowlingTable({ inn }: { inn: any }) {
+  // derive per-bowler split by phase from ball log
+  const split: Record<string, { NORMAL: { b: number; r: number; w: number }; CRAZY: { b: number; r: number; w: number; maidens: number } }> = {};
+  const ensure = (n: string) => {
+    if (!split[n]) split[n] = { NORMAL: { b: 0, r: 0, w: 0 }, CRAZY: { b: 0, r: 0, w: 0, maidens: 0 } };
+    return split[n];
+  };
+  for (const b of inn.balls as any[]) {
+    const s = ensure(b.bowler);
+    const grp = b.phase === "CRAZY" ? s.CRAZY : s.NORMAL;
+    grp.b += 1;
+    grp.r += b.runs;
+    if (b.isWicket) grp.w += 1;
+  }
+  // maidens: a CRAZY over with 0 squares conceded by that bowler
+  // group balls by over (6 balls) per bowler-of-record per over
+  const byOver: Record<string, { phase: string; balls: any[] }> = {};
+  for (const b of inn.balls as any[]) {
+    const k = `${b.bowler}#${b.over}`;
+    if (!byOver[k]) byOver[k] = { phase: b.phase, balls: [] };
+    byOver[k].balls.push(b);
+  }
+  for (const k of Object.keys(byOver)) {
+    const o = byOver[k];
+    if (o.phase === "CRAZY" && o.balls.length === 6 && o.balls.every((b) => !b.isSquare)) {
+      const name = k.split("#")[0];
+      ensure(name).CRAZY.maidens += 1;
+    }
+  }
+  const ov = (n: number) => `${Math.floor(n / 6)}.${n % 6}`;
+  const econ = (r: number, b: number) => (b ? ((r / b) * 6).toFixed(2) : "—");
+  const names = Object.keys(inn.bowlStats);
   return (
     <table className="w-full text-xs">
       <thead className="text-white/60">
         <tr>
-          <th className="text-left p-1">Bowler</th>
-          <th>O</th>
-          <th>M</th>
-          <th>R</th>
-          <th>W</th>
-          <th>Econ</th>
+          <th rowSpan={2} className="text-left p-1">Bowler</th>
+          <th colSpan={4} className="border-b border-white/10 text-emerald-300">Normal</th>
+          <th colSpan={5} className="border-b border-white/10 text-fuchsia-300">Crazy</th>
+          <th rowSpan={2}>Total</th>
+        </tr>
+        <tr>
+          <th>O</th><th>R</th><th>W</th><th>Econ</th>
+          <th>O</th><th>M</th><th>R</th><th>W</th><th>Econ</th>
         </tr>
       </thead>
       <tbody>
-        {Object.entries(inn.bowlStats).map(([name, s]: [string, any]) => {
-          const ov = `${Math.floor(s.ballsBowled / 6)}.${s.ballsBowled % 6}`;
-          const econ = s.ballsBowled ? ((s.runsConceded / s.ballsBowled) * 6).toFixed(2) : "—";
+        {names.map((name) => {
+          const s = ensure(name);
+          const total = s.NORMAL.b + s.CRAZY.b;
+          const totalR = s.NORMAL.r + s.CRAZY.r;
+          const totalW = s.NORMAL.w + s.CRAZY.w;
           return (
             <tr key={name} className="border-t border-white/10">
               <td className="p-1 font-semibold">{name}</td>
-              <td className="text-center">{ov}</td>
-              <td className="text-center">{s.maidens}</td>
-              <td className="text-center">{s.runsConceded}</td>
-              <td className="text-center">{s.wickets}</td>
-              <td className="text-center">{econ}</td>
+              <td className="text-center">{ov(s.NORMAL.b)}</td>
+              <td className="text-center">{s.NORMAL.r}</td>
+              <td className="text-center">{s.NORMAL.w}</td>
+              <td className="text-center">{econ(s.NORMAL.r, s.NORMAL.b)}</td>
+              <td className="text-center">{ov(s.CRAZY.b)}</td>
+              <td className="text-center">{s.CRAZY.maidens}</td>
+              <td className="text-center">{s.CRAZY.r}</td>
+              <td className="text-center">{s.CRAZY.w}</td>
+              <td className="text-center">{econ(s.CRAZY.r, s.CRAZY.b)}</td>
+              <td className="text-center text-white/80">{ov(total)} · {totalR}/{totalW}</td>
             </tr>
           );
         })}
