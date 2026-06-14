@@ -132,12 +132,31 @@ export function setBowler(s: GameState, bowler: string): GameState {
 
 export function setNewBatter(s: GameState, name: string): GameState {
   const inn = { ...s.innings[s.currentInnings]! };
-  // incoming batter goes to striker end (replaces dismissed)
-  inn.striker = name;
+  const toNonStriker = s.pendingSelect?.toNonStriker === true;
+  if (toNonStriker) {
+    inn.nonStriker = name;
+  } else {
+    // incoming batter goes to striker end (replaces dismissed)
+    inn.striker = name;
+  }
   inn.batStats[name] = newBatStats();
   inn.yetToBat = inn.yetToBat.filter((n) => n !== name);
   const innings = [...s.innings];
   innings[s.currentInnings] = inn;
+  // If we still need a bowler (e.g. wicket fell on last ball of over), chain into bowler selection
+  if (!inn.bowler) {
+    return {
+      ...s,
+      innings,
+      phase: "select_bowler",
+      pendingSelect: { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings })! },
+      hostInput: null,
+      awayInput: null,
+      hostLocked: false,
+      awayLocked: false,
+      lastActionAt: Date.now(),
+    };
+  }
   return {
     ...s,
     innings,
