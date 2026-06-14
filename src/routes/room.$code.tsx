@@ -69,7 +69,55 @@ function Room() {
   // realtime
   useEffect(() => {
     if (!side) return;
-    const { channel, send: rawSend } = joinRoom(code, handleEvent);
+    const { channel, send: rawSend } = joinRoom(
+      code,
+      handleEvent,
+      { side: sideRef.current!, clientId: myClientIdRef.current },
+      {
+        onJoin: ({ side: peerSide, clientId }) => {
+          if (peerSide === sideRef.current) return;
+          peerClientIdRef.current = clientId;
+          // host: if paused due to disconnect of this side, auto-resume
+          if (sideRef.current === "host") {
+            const cur = stateRef.current;
+            if (cur && cur.paused && cur.pausedReason === "disconnect" && cur.disconnectedSide === peerSide) {
+              const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
+              applyAndBroadcast({
+                ...cur,
+                paused: false,
+                pausedAt: null,
+                pausedReason: undefined,
+                disconnectedSide: null,
+                matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+                lastActionAt: Date.now() + 5000,
+                hostConnected: true,
+                awayConnected: true,
+              });
+            } else if (cur) {
+              // ensure connected flags accurate and rebroadcast state for hydration
+              applyAndBroadcast({ ...cur, hostConnected: true, awayConnected: true });
+            }
+          }
+        },
+        onLeave: ({ side: peerSide }) => {
+          if (peerSide === sideRef.current) return;
+          if (sideRef.current !== "host") return;
+          const cur = stateRef.current;
+          if (!cur) return;
+          if (cur.phase === "lobby" || cur.phase === "match_over") return;
+          if (cur.paused) return;
+          applyAndBroadcast({
+            ...cur,
+            paused: true,
+            pausedAt: Date.now(),
+            pausedReason: "disconnect",
+            disconnectedSide: peerSide,
+            awayConnected: peerSide === "away" ? false : cur.awayConnected,
+            hostConnected: peerSide === "host" ? false : cur.hostConnected,
+          });
+        },
+      },
+    );
     // wrap send so every outgoing event carries our clientId
     const send = (e: RoomEvent) => rawSend({ ...e, _from: myClientIdRef.current } as RoomEvent);
     sendRef.current = send;
@@ -96,13 +144,27 @@ function Room() {
         return;
       }
       if (sideRef.current === "host") {
-        // auto-pause when idle > 60s during active play (3s grace after any action)
+        // auto-forfeit if peer has been disconnected for > 5 min
+        if (s.paused && s.pausedReason === "disconnect" && s.pausedAt && Date.now() - s.pausedAt > 5 * 60 * 1000) {
+          const winnerSide: Side = s.disconnectedSide === "host" ? "away" : "host";
+          const winnerName = teamForSide(s, winnerSide)?.name ?? winnerSide;
+          applyAndBroadcast({
+            ...s,
+            phase: "match_over",
+            paused: false,
+            pausedReason: undefined,
+            result: `${winnerName} wins — opponent did not return within 5 minutes`,
+            winner: winnerSide,
+          });
+          return;
+        }
+        // auto-pause when idle > 60s during active play
         if (
           !s.paused &&
           (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
           Date.now() - s.lastActionAt > 60_000
         ) {
-          applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+          applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now(), pausedReason: "idle" });
           return;
         }
         const ns = checkTimeUp(s);
@@ -157,6 +219,19 @@ function Room() {
         s = { ...s, awayTeamId: e.teamId ?? s.awayTeamId, awayConnected: true, hostConnected: true };
         if (s.hostTeamId && s.awayTeamId && s.phase === "lobby") {
           s = { ...s, phase: "toss" };
+        }
+        // auto-resume if paused due to away disconnect
+        if (s.paused && s.pausedReason === "disconnect" && s.disconnectedSide === "away") {
+          const elapsed = s.pausedAt ? Date.now() - s.pausedAt : 0;
+          s = {
+            ...s,
+            paused: false,
+            pausedAt: null,
+            pausedReason: undefined,
+            disconnectedSide: null,
+            matchEndsAt: s.matchEndsAt ? s.matchEndsAt + elapsed : s.matchEndsAt,
+            lastActionAt: Date.now() + 5000,
+          };
         }
         applyAndBroadcast(s);
       }
@@ -244,16 +319,19 @@ function Room() {
       }
       case "pause": {
         if (cur.paused) return;
-        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now() });
+        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now(), pausedReason: "manual" });
         return;
       }
       case "resume": {
         if (!cur.paused) return;
+        // cannot manually resume a disconnect pause — must wait for reconnect
+        if (cur.pausedReason === "disconnect") return;
         const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
         applyAndBroadcast({
           ...cur,
           paused: false,
           pausedAt: null,
+          pausedReason: undefined,
           matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
           lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
@@ -1286,27 +1364,51 @@ function PauseOverlay({
             <Scorecard state={state} />
           </div>
         ) : (
-          <div className="min-h-full flex flex-col items-center justify-center p-6">
-            <div className="text-6xl mb-4">⏸</div>
-            <div className="text-3xl font-black mb-2">Match Paused</div>
-            <div className="text-white/60 mb-8 text-center">
-              Timer is frozen. Either side can resume.
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-              <button
-                onClick={() => setShowCard(true)}
-                className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
-              >
-                📊 View Scorecard
-              </button>
-              <button
-                onClick={() => send({ type: "resume" })}
-                className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
-              >
-                ▶ Resume Match
-              </button>
-            </div>
-          </div>
+          (() => {
+            const isDisc = state.pausedReason === "disconnect";
+            const discSide = state.disconnectedSide;
+            const discTeam = discSide ? teamForSide(state, discSide)?.name : "Opponent";
+            const remainMs = isDisc && state.pausedAt ? Math.max(0, 5 * 60 * 1000 - (Date.now() - state.pausedAt)) : 0;
+            const mm = Math.floor(remainMs / 60000);
+            const ss = Math.floor((remainMs % 60000) / 1000);
+            return (
+              <div className="min-h-full flex flex-col items-center justify-center p-6">
+                <div className="text-6xl mb-4">{isDisc ? "🔌" : "⏸"}</div>
+                <div className="text-3xl font-black mb-2">
+                  {isDisc ? `${discTeam} disconnected` : "Match Paused"}
+                </div>
+                <div className="text-white/60 mb-2 text-center">
+                  {isDisc
+                    ? `Waiting for ${discTeam} to return…`
+                    : state.pausedReason === "idle"
+                      ? "Paused due to inactivity. Either side can resume."
+                      : "Timer is frozen. Either side can resume."}
+                </div>
+                {isDisc && (
+                  <div className="font-mono text-2xl text-amber-300 mb-6">
+                    {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+                    <span className="text-sm text-white/50 ml-2">until forfeit</span>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                  <button
+                    onClick={() => setShowCard(true)}
+                    className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
+                  >
+                    📊 View Scorecard
+                  </button>
+                  {!isDisc && (
+                    <button
+                      onClick={() => send({ type: "resume" })}
+                      className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
+                    >
+                      ▶ Resume Match
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()
         )}
       </div>
     </div>
