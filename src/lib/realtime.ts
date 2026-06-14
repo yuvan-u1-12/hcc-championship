@@ -19,18 +19,48 @@ type RoomEventBase =
 
 export type RoomEvent = RoomEventBase & { _from?: string };
 
+export interface PresenceHandlers {
+  onJoin?: (info: { side: "host" | "away"; clientId: string }) => void;
+  onLeave?: (info: { side: "host" | "away"; clientId: string }) => void;
+}
+
 export function joinRoom(
   roomCode: string,
   onEvent: (e: RoomEvent) => void,
+  identity: { side: "host" | "away"; clientId: string },
+  presence?: PresenceHandlers,
 ): { channel: RealtimeChannel; send: (e: RoomEvent) => void } {
   const channel = supabase.channel(`hcc:${roomCode}`, {
-    config: { broadcast: { self: false, ack: false } },
+    config: {
+      broadcast: { self: false, ack: false },
+      presence: { key: identity.clientId },
+    },
   });
   channel
     .on("broadcast", { event: "msg" }, (payload) => {
       onEvent(payload.payload as RoomEvent);
     })
-    .subscribe();
+    .on("presence", { event: "join" }, ({ newPresences }) => {
+      for (const p of newPresences as any[]) {
+        if (p.clientId && p.clientId !== identity.clientId) {
+          presence?.onJoin?.({ side: p.side, clientId: p.clientId });
+        }
+      }
+    })
+    .on("presence", { event: "leave" }, ({ leftPresences }) => {
+      for (const p of leftPresences as any[]) {
+        if (p.clientId && p.clientId !== identity.clientId) {
+          presence?.onLeave?.({ side: p.side, clientId: p.clientId });
+        }
+      }
+    })
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        try {
+          await channel.track({ side: identity.side, clientId: identity.clientId });
+        } catch {}
+      }
+    });
   const send = (e: RoomEvent) => {
     channel.send({ type: "broadcast", event: "msg", payload: e });
   };
@@ -38,5 +68,8 @@ export function joinRoom(
 }
 
 export function leaveRoom(channel: RealtimeChannel) {
+  try {
+    channel.untrack();
+  } catch {}
   supabase.removeChannel(channel);
 }
