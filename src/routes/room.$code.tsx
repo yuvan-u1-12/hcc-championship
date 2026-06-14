@@ -144,13 +144,27 @@ function Room() {
         return;
       }
       if (sideRef.current === "host") {
-        // auto-pause when idle > 60s during active play (3s grace after any action)
+        // auto-forfeit if peer has been disconnected for > 5 min
+        if (s.paused && s.pausedReason === "disconnect" && s.pausedAt && Date.now() - s.pausedAt > 5 * 60 * 1000) {
+          const winnerSide: Side = s.disconnectedSide === "host" ? "away" : "host";
+          const winnerName = teamForSide(s, winnerSide)?.name ?? winnerSide;
+          applyAndBroadcast({
+            ...s,
+            phase: "match_over",
+            paused: false,
+            pausedReason: undefined,
+            result: `${winnerName} wins — opponent did not return within 5 minutes`,
+            winner: winnerSide,
+          });
+          return;
+        }
+        // auto-pause when idle > 60s during active play
         if (
           !s.paused &&
           (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
           Date.now() - s.lastActionAt > 60_000
         ) {
-          applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+          applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now(), pausedReason: "idle" });
           return;
         }
         const ns = checkTimeUp(s);
