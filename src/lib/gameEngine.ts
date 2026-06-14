@@ -317,8 +317,18 @@ export function resolveBall(s: GameState): GameState {
       inn.nonStriker = tmp;
     }
     if (!inn.closed) {
-      pendingSelect = { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings: replaceInn(s, innIdx, inn) })! };
-      nextPhaseGame = "select_bowler";
+      // If wicket fell on this last ball, striker is null and non-striker is the survivor.
+      // Promote the survivor to striker and request the new batter for the non-striker end first,
+      // then bowler selection will be chained inside setNewBatter.
+      if (!inn.isLMS && inn.striker === null && inn.nonStriker) {
+        inn.striker = inn.nonStriker;
+        inn.nonStriker = null;
+        pendingSelect = { type: "batter", forSide: battingSide, toNonStriker: true };
+        nextPhaseGame = "select_new_batter";
+      } else {
+        pendingSelect = { type: "bowler", forSide: bowlingSideForCurrent({ ...s, innings: replaceInn(s, innIdx, inn) })! };
+        nextPhaseGame = "select_bowler";
+      }
     }
   } else {
     inn.ballInOver += 1;
