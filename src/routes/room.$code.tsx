@@ -1364,27 +1364,51 @@ function PauseOverlay({
             <Scorecard state={state} />
           </div>
         ) : (
-          <div className="min-h-full flex flex-col items-center justify-center p-6">
-            <div className="text-6xl mb-4">⏸</div>
-            <div className="text-3xl font-black mb-2">Match Paused</div>
-            <div className="text-white/60 mb-8 text-center">
-              Timer is frozen. Either side can resume.
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
-              <button
-                onClick={() => setShowCard(true)}
-                className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
-              >
-                📊 View Scorecard
-              </button>
-              <button
-                onClick={() => send({ type: "resume" })}
-                className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
-              >
-                ▶ Resume Match
-              </button>
-            </div>
-          </div>
+          (() => {
+            const isDisc = state.pausedReason === "disconnect";
+            const discSide = state.disconnectedSide;
+            const discTeam = discSide ? teamForSide(state, discSide)?.name : "Opponent";
+            const remainMs = isDisc && state.pausedAt ? Math.max(0, 5 * 60 * 1000 - (Date.now() - state.pausedAt)) : 0;
+            const mm = Math.floor(remainMs / 60000);
+            const ss = Math.floor((remainMs % 60000) / 1000);
+            return (
+              <div className="min-h-full flex flex-col items-center justify-center p-6">
+                <div className="text-6xl mb-4">{isDisc ? "🔌" : "⏸"}</div>
+                <div className="text-3xl font-black mb-2">
+                  {isDisc ? `${discTeam} disconnected` : "Match Paused"}
+                </div>
+                <div className="text-white/60 mb-2 text-center">
+                  {isDisc
+                    ? `Waiting for ${discTeam} to return…`
+                    : state.pausedReason === "idle"
+                      ? "Paused due to inactivity. Either side can resume."
+                      : "Timer is frozen. Either side can resume."}
+                </div>
+                {isDisc && (
+                  <div className="font-mono text-2xl text-amber-300 mb-6">
+                    {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}
+                    <span className="text-sm text-white/50 ml-2">until forfeit</span>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+                  <button
+                    onClick={() => setShowCard(true)}
+                    className="flex-1 py-3 rounded-xl bg-indigo-500 font-bold"
+                  >
+                    📊 View Scorecard
+                  </button>
+                  {!isDisc && (
+                    <button
+                      onClick={() => send({ type: "resume" })}
+                      className="flex-1 py-3 rounded-xl bg-emerald-500 text-emerald-950 font-bold"
+                    >
+                      ▶ Resume Match
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })()
         )}
       </div>
     </div>
