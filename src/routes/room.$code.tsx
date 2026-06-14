@@ -206,6 +206,19 @@ function Room() {
         if (s.hostTeamId && s.awayTeamId && s.phase === "lobby") {
           s = { ...s, phase: "toss" };
         }
+        // auto-resume if paused due to away disconnect
+        if (s.paused && s.pausedReason === "disconnect" && s.disconnectedSide === "away") {
+          const elapsed = s.pausedAt ? Date.now() - s.pausedAt : 0;
+          s = {
+            ...s,
+            paused: false,
+            pausedAt: null,
+            pausedReason: undefined,
+            disconnectedSide: null,
+            matchEndsAt: s.matchEndsAt ? s.matchEndsAt + elapsed : s.matchEndsAt,
+            lastActionAt: Date.now() + 5000,
+          };
+        }
         applyAndBroadcast(s);
       }
       return;
