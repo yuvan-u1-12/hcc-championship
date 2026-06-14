@@ -319,16 +319,19 @@ function Room() {
       }
       case "pause": {
         if (cur.paused) return;
-        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now() });
+        applyAndBroadcast({ ...cur, paused: true, pausedAt: Date.now(), pausedReason: "manual" });
         return;
       }
       case "resume": {
         if (!cur.paused) return;
+        // cannot manually resume a disconnect pause — must wait for reconnect
+        if (cur.pausedReason === "disconnect") return;
         const elapsed = cur.pausedAt ? Date.now() - cur.pausedAt : 0;
         applyAndBroadcast({
           ...cur,
           paused: false,
           pausedAt: null,
+          pausedReason: undefined,
           matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
           lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
