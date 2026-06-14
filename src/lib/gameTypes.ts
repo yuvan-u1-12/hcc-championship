@@ -112,6 +112,8 @@ export interface GameState {
   lastActionAt: number;
   paused?: boolean;
   pausedAt?: number | null;
+  pausedReason?: "manual" | "idle" | "disconnect";
+  disconnectedSide?: Side | null;
   // chat
   chat: { side: Side; text: string; t: number }[];
   // last result for UI display
