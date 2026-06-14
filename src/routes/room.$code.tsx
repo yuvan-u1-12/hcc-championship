@@ -87,27 +87,31 @@ function Room() {
     stateRef.current = state;
   }, [state, code]);
 
-  // periodic time check (host only)
+  // periodic time check (host runs engine; both sides force tick for timer)
   useEffect(() => {
-    if (side !== "host") return;
     const id = setInterval(() => {
       const s = stateRef.current;
-      if (!s || s.phase === "match_over" || s.phase === "lobby") return;
-      // auto-pause when idle > 60s during active play
-      if (
-        !s.paused &&
-        (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
-        Date.now() - s.lastActionAt > 60_000
-      ) {
-        applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+      if (!s || s.phase === "match_over" || s.phase === "lobby") {
+        force((n) => n + 1);
         return;
       }
-      const ns = checkTimeUp(s);
-      if (ns !== s) {
-        applyAndBroadcast(ns);
-      } else {
-        force((n) => n + 1); // refresh timer display
+      if (sideRef.current === "host") {
+        // auto-pause when idle > 60s during active play (3s grace after any action)
+        if (
+          !s.paused &&
+          (s.phase === "playing" || s.phase === "select_bowler" || s.phase === "select_new_batter") &&
+          Date.now() - s.lastActionAt > 60_000
+        ) {
+          applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now() });
+          return;
+        }
+        const ns = checkTimeUp(s);
+        if (ns !== s) {
+          applyAndBroadcast(ns);
+          return;
+        }
       }
+      force((n) => n + 1); // refresh timer display on both sides
     }, 1000);
     return () => clearInterval(id);
   }, [side]);
