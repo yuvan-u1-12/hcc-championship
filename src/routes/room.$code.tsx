@@ -255,7 +255,7 @@ function Room() {
           paused: false,
           pausedAt: null,
           matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
-          lastActionAt: Date.now(),
+          lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
         return;
       }
