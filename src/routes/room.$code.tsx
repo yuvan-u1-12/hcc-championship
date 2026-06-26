@@ -1375,7 +1375,7 @@ function PauseOverlay({
                 Back
               </button>
             </div>
-            <Scorecard state={state} />
+            <Scorecard state={state} code="" isHost={false} />
           </div>
         ) : (
           (() => {
