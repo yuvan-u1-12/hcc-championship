@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildPlayerLogRows } from "./matchStats";
-import type { GameState } from "./gameTypes";
+import { buildPlayerLogRows } from "../matchStats";
+import type { GameState } from "../gameTypes";
 
 const SAVED_PREFIX = "match_saved_";
 
