@@ -453,7 +453,7 @@ function RoomUI({
       {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
-          <Scorecard state={state} />
+          <Scorecard state={state} code={code} isHost={mySide === "host"} />
         ) : state.phase === "innings_break" ? (
           <InningsBreak state={state} mySide={mySide} send={send} />
         ) : state.phase === "follow_on_decision" ? (
