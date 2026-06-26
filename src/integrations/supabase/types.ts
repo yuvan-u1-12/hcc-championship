@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      innings_data: {
+        Row: {
+          batting_team: string
+          bowling_team: string
+          created_at: string
+          id: string
+          inn1_score: string | null
+          inn2_score: string | null
+          inn3_score: string | null
+          inn4_score: string | null
+          match_aggregate: number | null
+          match_id: string
+        }
+        Insert: {
+          batting_team: string
+          bowling_team: string
+          created_at?: string
+          id?: string
+          inn1_score?: string | null
+          inn2_score?: string | null
+          inn3_score?: string | null
+          inn4_score?: string | null
+          match_aggregate?: number | null
+          match_id: string
+        }
+        Update: {
+          batting_team?: string
+          bowling_team?: string
+          created_at?: string
+          id?: string
+          inn1_score?: string | null
+          inn2_score?: string | null
+          inn3_score?: string | null
+          inn4_score?: string | null
+          match_aggregate?: number | null
+          match_id?: string
+        }
+        Relationships: []
+      }
+      match_history: {
+        Row: {
+          away_team: string
+          created_at: string
+          home_team: string
+          id: string
+          loser: string | null
+          match_id: string
+          potm: string | null
+          winner: string | null
+          won_by: string | null
+        }
+        Insert: {
+          away_team: string
+          created_at?: string
+          home_team: string
+          id?: string
+          loser?: string | null
+          match_id: string
+          potm?: string | null
+          winner?: string | null
+          won_by?: string | null
+        }
+        Update: {
+          away_team?: string
+          created_at?: string
+          home_team?: string
+          id?: string
+          loser?: string | null
+          match_id?: string
+          potm?: string | null
+          winner?: string | null
+          won_by?: string | null
+        }
+        Relationships: []
+      }
       match_player_logs: {
         Row: {
           balls_bowled: number
