@@ -1084,7 +1084,21 @@ function FollowOnDecision({
 }
 
 // ============ Scorecard ============
-function Scorecard({ state }: { state: GameState }) {
+function Scorecard({ state, code, isHost }: { state: GameState; code: string; isHost: boolean }) {
+  const [saveMsg, setSaveMsg] = useState<string>("");
+  useEffect(() => {
+    if (!isHost) return;
+    let cancelled = false;
+    (async () => {
+      const { saveMatchStats } = await import("@/lib/api/stats");
+      const res = await saveMatchStats(code, state);
+      if (cancelled) return;
+      setSaveMsg(res.ok ? "✓ Stats saved to leaderboards" : `⚠ Save failed: ${res.error}`);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHost, code, state]);
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="rounded-2xl bg-gradient-to-r from-emerald-700 to-indigo-800 p-6 mb-6 text-center">
