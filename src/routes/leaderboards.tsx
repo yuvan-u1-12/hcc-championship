@@ -1,12 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { fetchLeaderboard, type AggregatedStats, type LeaderboardFilter } from "@/lib/api/stats";
+import { useEffect, useState } from "react";
+import {
+  fetchPhaseSplitLeaders,
+  type BattingLeader,
+  type BowlingLeader,
+} from "@/lib/api/historical";
+
+type Filter = "Overall" | "Normal" | "Crazy";
 
 export const Route = createFileRoute("/leaderboards")({
   component: LeaderboardsPage,
 });
 
-const FILTERS: LeaderboardFilter[] = ["Overall", "Normal", "Crazy"];
+const FILTERS: Filter[] = ["Overall", "Normal", "Crazy"];
 
 function fmt(n: number, digits = 2): string {
   if (!isFinite(n)) return "—";
@@ -14,8 +20,9 @@ function fmt(n: number, digits = 2): string {
 }
 
 function LeaderboardsPage() {
-  const [filter, setFilter] = useState<LeaderboardFilter>("Overall");
-  const [rows, setRows] = useState<AggregatedStats[]>([]);
+  const [filter, setFilter] = useState<Filter>("Overall");
+  const [batting, setBatting] = useState<BattingLeader[]>([]);
+  const [bowling, setBowling] = useState<BowlingLeader[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,51 +30,19 @@ function LeaderboardsPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchLeaderboard(filter)
+    fetchPhaseSplitLeaders(filter)
       .then((d) => {
-        if (!cancelled) setRows(d);
+        if (!cancelled) {
+          setBatting(d.batters);
+          setBowling(d.bowlers);
+        }
       })
-      .catch((e) => {
-        if (!cancelled) setError(e?.message ?? String(e));
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      .catch((e) => !cancelled && setError(e?.message ?? String(e)))
+      .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
   }, [filter]);
-
-  const batting = useMemo(() => {
-    return [...rows]
-      .filter((r) => r.runs > 0 || r.outs > 0 || r.low_boundaries || r.high_boundaries || r.ten_squares)
-      .map((r) => ({
-        ...r,
-        avg: r.outs > 0 ? r.runs / r.outs : r.runs,
-        avgDisplay: r.outs > 0 ? fmt(r.runs / r.outs) : r.runs > 0 ? `${r.runs}*` : "—",
-      }))
-      .sort((a, b) => b.runs - a.runs);
-  }, [rows]);
-
-  const bowling = useMemo(() => {
-    return [...rows]
-      .filter((r) => r.balls_bowled > 0)
-      .map((r) => {
-        const oversFloat = r.balls_bowled / 6;
-        const oversDisplay = `${Math.floor(r.balls_bowled / 6)}.${r.balls_bowled % 6}`;
-        const avg = r.wickets > 0 ? r.runs_conceded / r.wickets : null;
-        const sr = r.wickets > 0 ? r.balls_bowled / r.wickets : null;
-        const econ = oversFloat > 0 ? r.runs_conceded / oversFloat : null;
-        return {
-          ...r,
-          oversDisplay,
-          avg,
-          sr,
-          econ,
-        };
-      })
-      .sort((a, b) => b.wickets - a.wickets || a.runs_conceded - b.runs_conceded);
-  }, [rows]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6">
@@ -99,7 +74,12 @@ function LeaderboardsPage() {
         {!loading && !error && (
           <>
             <section className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-6">
-              <h2 className="text-xl font-bold mb-3">Batting · {filter}</h2>
+              <h2 className="text-xl font-bold mb-1">
+                🧢 Orange Cap — Batting · {filter}
+              </h2>
+              <div className="text-[11px] text-white/50 mb-3">
+                Sort: Overall Runs ↓ → Crazy Runs ↓ → Normal Runs ↓ → Avg ↓ → Outs ↑
+              </div>
               {batting.length === 0 ? (
                 <div className="text-white/50 text-sm">No batting data yet.</div>
               ) : (
@@ -111,6 +91,8 @@ function LeaderboardsPage() {
                         <th className="p-2">Player</th>
                         <th className="p-2">Team</th>
                         <th className="p-2 text-right">Runs</th>
+                        <th className="p-2 text-right">Normal</th>
+                        <th className="p-2 text-right">Crazy</th>
                         <th className="p-2 text-right">Outs</th>
                         <th className="p-2 text-right">Avg</th>
                         <th className="p-2 text-right">Low Bdry</th>
@@ -124,9 +106,13 @@ function LeaderboardsPage() {
                           <td className="p-2 text-white/50">{i + 1}</td>
                           <td className="p-2 font-semibold">{r.player_name}</td>
                           <td className="p-2 text-white/70">{r.team_name}</td>
-                          <td className="p-2 text-right font-mono">{r.runs}</td>
+                          <td className="p-2 text-right font-mono font-bold">{r.overall_runs}</td>
+                          <td className="p-2 text-right font-mono">{r.normal_runs}</td>
+                          <td className="p-2 text-right font-mono">{r.crazy_runs}</td>
                           <td className="p-2 text-right font-mono">{r.outs}</td>
-                          <td className="p-2 text-right font-mono">{r.avgDisplay}</td>
+                          <td className="p-2 text-right font-mono">
+                            {r.outs > 0 ? fmt(r.avg) : r.overall_runs > 0 ? `${r.overall_runs}*` : "—"}
+                          </td>
                           <td className="p-2 text-right font-mono">{r.low_boundaries}</td>
                           <td className="p-2 text-right font-mono">{r.high_boundaries}</td>
                           <td className="p-2 text-right font-mono">{r.ten_squares}</td>
@@ -139,7 +125,12 @@ function LeaderboardsPage() {
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <h2 className="text-xl font-bold mb-3">Bowling · {filter}</h2>
+              <h2 className="text-xl font-bold mb-1">
+                🎯 Purple Cap — Bowling · {filter}
+              </h2>
+              <div className="text-[11px] text-white/50 mb-3">
+                Sort: Wickets ↓ → Econ ↑ → Avg ↑ → SR ↑
+              </div>
               {bowling.length === 0 ? (
                 <div className="text-white/50 text-sm">No bowling data yet.</div>
               ) : (
@@ -160,20 +151,23 @@ function LeaderboardsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bowling.map((r, i) => (
-                        <tr key={`${r.player_name}-${r.team_name}`} className="border-t border-white/10">
-                          <td className="p-2 text-white/50">{i + 1}</td>
-                          <td className="p-2 font-semibold">{r.player_name}</td>
-                          <td className="p-2 text-white/70">{r.team_name}</td>
-                          <td className="p-2 text-right font-mono">{r.oversDisplay}</td>
-                          <td className="p-2 text-right font-mono">{r.wickets}</td>
-                          <td className="p-2 text-right font-mono">{r.runs_conceded}</td>
-                          <td className="p-2 text-right font-mono">{r.maidens}</td>
-                          <td className="p-2 text-right font-mono">{r.avg === null ? "—" : fmt(r.avg)}</td>
-                          <td className="p-2 text-right font-mono">{r.sr === null ? "—" : fmt(r.sr)}</td>
-                          <td className="p-2 text-right font-mono">{r.econ === null ? "—" : fmt(r.econ)}</td>
-                        </tr>
-                      ))}
+                      {bowling.map((r, i) => {
+                        const overs = `${Math.floor(r.balls_bowled / 6)}.${r.balls_bowled % 6}`;
+                        return (
+                          <tr key={`${r.player_name}-${r.team_name}`} className="border-t border-white/10">
+                            <td className="p-2 text-white/50">{i + 1}</td>
+                            <td className="p-2 font-semibold">{r.player_name}</td>
+                            <td className="p-2 text-white/70">{r.team_name}</td>
+                            <td className="p-2 text-right font-mono">{overs}</td>
+                            <td className="p-2 text-right font-mono font-bold">{r.wickets}</td>
+                            <td className="p-2 text-right font-mono">{r.runs_conceded}</td>
+                            <td className="p-2 text-right font-mono">{r.maidens}</td>
+                            <td className="p-2 text-right font-mono">{r.wickets > 0 ? fmt(r.avg) : "—"}</td>
+                            <td className="p-2 text-right font-mono">{r.wickets > 0 ? fmt(r.sr) : "—"}</td>
+                            <td className="p-2 text-right font-mono">{isFinite(r.econ) ? fmt(r.econ) : "—"}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
