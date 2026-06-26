@@ -41,7 +41,12 @@ function Lobby() {
         <h1 className="text-2xl font-black tracking-tight">
           🏏 HCC <span className="text-emerald-400">Pure Match Engine</span>
         </h1>
-        <span className="text-xs text-white/60">4 Innings · 30:00 Clock · LMS Enabled</span>
+        <div className="flex items-center gap-4">
+          <a href="/leaderboards" className="text-sm px-3 py-1.5 rounded bg-white/10 hover:bg-white/20">
+            🏆 Leaderboards
+          </a>
+          <span className="text-xs text-white/60">4 Innings · 30:00 Clock · LMS Enabled</span>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto px-6 py-8 max-w-6xl mx-auto w-full">

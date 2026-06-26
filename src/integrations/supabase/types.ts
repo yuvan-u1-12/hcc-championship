@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      match_player_logs: {
+        Row: {
+          balls_bowled: number
+          created_at: string
+          high_boundaries: number
+          id: string
+          low_boundaries: number
+          maidens: number
+          match_id: string
+          outs: number
+          phase: Database["public"]["Enums"]["match_phase"]
+          player_name: string
+          runs_conceded: number
+          runs_scored: number
+          team_name: string
+          ten_squares: number
+          wickets: number
+        }
+        Insert: {
+          balls_bowled?: number
+          created_at?: string
+          high_boundaries?: number
+          id?: string
+          low_boundaries?: number
+          maidens?: number
+          match_id: string
+          outs?: number
+          phase: Database["public"]["Enums"]["match_phase"]
+          player_name: string
+          runs_conceded?: number
+          runs_scored?: number
+          team_name: string
+          ten_squares?: number
+          wickets?: number
+        }
+        Update: {
+          balls_bowled?: number
+          created_at?: string
+          high_boundaries?: number
+          id?: string
+          low_boundaries?: number
+          maidens?: number
+          match_id?: string
+          outs?: number
+          phase?: Database["public"]["Enums"]["match_phase"]
+          player_name?: string
+          runs_conceded?: number
+          runs_scored?: number
+          team_name?: string
+          ten_squares?: number
+          wickets?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +76,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      match_phase: "Normal" | "Crazy"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +203,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      match_phase: ["Normal", "Crazy"],
+    },
   },
 } as const

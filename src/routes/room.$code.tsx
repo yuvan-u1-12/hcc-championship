@@ -453,7 +453,7 @@ function RoomUI({
       {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
-          <Scorecard state={state} />
+          <Scorecard state={state} code={code} isHost={mySide === "host"} />
         ) : state.phase === "innings_break" ? (
           <InningsBreak state={state} mySide={mySide} send={send} />
         ) : state.phase === "follow_on_decision" ? (
@@ -1084,12 +1084,32 @@ function FollowOnDecision({
 }
 
 // ============ Scorecard ============
-function Scorecard({ state }: { state: GameState }) {
+function Scorecard({ state, code, isHost }: { state: GameState; code: string; isHost: boolean }) {
+  const [saveMsg, setSaveMsg] = useState<string>("");
+  useEffect(() => {
+    if (!isHost) return;
+    let cancelled = false;
+    (async () => {
+      const { saveMatchStats } = await import("@/lib/api/stats");
+      const res = await saveMatchStats(code, state);
+      if (cancelled) return;
+      setSaveMsg(res.ok ? "✓ Stats saved to leaderboards" : `⚠ Save failed: ${res.error}`);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHost, code, state]);
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="rounded-2xl bg-gradient-to-r from-emerald-700 to-indigo-800 p-6 mb-6 text-center">
         <div className="text-sm opacity-80">Result</div>
         <div className="text-3xl font-black">{state.result ?? finalizeResult(state)}</div>
+        {isHost && saveMsg && <div className="mt-2 text-xs opacity-80">{saveMsg}</div>}
+        <div className="mt-3">
+          <a href="/leaderboards" className="inline-block px-4 py-1.5 rounded bg-white/15 hover:bg-white/25 text-sm font-semibold">
+            🏆 View Leaderboards
+          </a>
+        </div>
       </div>
       {[1, 2, 3, 4].map((i) => {
         const inn = state.innings[i];
@@ -1361,7 +1381,7 @@ function PauseOverlay({
                 Back
               </button>
             </div>
-            <Scorecard state={state} />
+            <Scorecard state={state} code="" isHost={false} />
           </div>
         ) : (
           (() => {
