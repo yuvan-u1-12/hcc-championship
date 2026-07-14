@@ -357,8 +357,9 @@ export function resolveBall(s: GameState): GameState {
 
   // innings end?
   if (inn.closed) {
-    return endOfInnings({ ...s, innings: replaceInn(s, innIdx, inn) }, result, winner);
+    return endOfInnings({ ...s, innings: replaceInn(s, innIdx, inn), lastBall: log }, result, winner);
   }
+
 
   return {
     ...s,
