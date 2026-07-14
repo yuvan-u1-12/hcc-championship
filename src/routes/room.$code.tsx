@@ -1020,13 +1020,33 @@ function InningsBreak({
   return (
     <div className="p-8 max-w-2xl mx-auto text-center">
       <h2 className="text-2xl font-bold mb-3">End of Innings {state.currentInnings}</h2>
-      <div className="text-white/70 mb-6">
+      <div className="text-white/70 mb-4">
         Totals: {getTeam(state.hostTeamId!)?.name} {totalsBySide(state).host} ·{" "}
         {getTeam(state.awayTeamId!)?.name} {totalsBySide(state).away}
       </div>
+      {state.lastBall && (
+        <div className="mb-4 mx-auto max-w-md rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+          <div className="text-white/60 mb-1">Last ball of innings</div>
+          <div className="font-semibold">
+            {state.lastBall.striker} — bat <b>{state.lastBall.bat}</b> vs bowl{" "}
+            <b>{state.lastBall.bowl}</b> ({state.lastBall.phase}) →{" "}
+            {state.lastBall.isWicket ? (
+              <span className="text-rose-400">WICKET</span>
+            ) : (
+              <span className="text-emerald-400">{state.lastBall.runs} runs</span>
+            )}
+          </div>
+          {state.lastBall.isWicket && (
+            <div className="text-xs text-white/60 mt-1">
+              Bowler: {state.lastBall.bowler}
+            </div>
+          )}
+        </div>
+      )}
       <div className="mb-6">
         Innings {nextInnings} → <b>{teamForSide(state, nextSide)!.name}</b> bats next.
       </div>
+
       {mySide === "host" ? (
         <button
           onClick={() => send({ type: "next_innings_choice", battingSide: nextSide })}

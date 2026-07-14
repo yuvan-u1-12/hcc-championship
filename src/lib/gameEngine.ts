@@ -214,8 +214,13 @@ export function resolveBall(s: GameState): GameState {
   const striker = inn.striker!;
   const bowler = inn.bowler!;
   const batterZerosUsed = inn.zeroCount[striker] ?? 0;
-  const batterZeroProtect = batInput === 0; // invincible only if batter played 0
-  const outcome = computeOutcome(batInput, bowlInput, phase, batterZeroProtect);
+  // Max 3 zeros per over: after 3 zeros already used, a 4th zero = OUT (no invincibility)
+  const batterZeroProtect = batInput === 0 && batterZerosUsed < 3;
+  let outcome = computeOutcome(batInput, bowlInput, phase, batterZeroProtect);
+  if (batInput === 0 && batterZerosUsed >= 3 && !outcome.out) {
+    outcome = { runs: 0, out: true, isSquare: false };
+  }
+
 
   // Stats
   const bs = { ...(inn.batStats[striker] ?? newBatStats()) };
