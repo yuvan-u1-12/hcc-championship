@@ -1112,6 +1112,25 @@ function Scorecard({ state, code: _code, isHost: _isHost }: { state: GameState; 
         <div className="text-3xl font-black">{state.result ?? finalizeResult(state)}</div>
       </div>
 
+      {state.lastBall && (
+        <div className="mb-6 mx-auto max-w-md rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-center">
+          <div className="text-white/60 mb-1">Final ball of the match</div>
+          <div className="font-semibold">
+            {state.lastBall.striker} — bat <b>{state.lastBall.bat}</b> vs bowl{" "}
+            <b>{state.lastBall.bowl}</b> ({state.lastBall.phase}) →{" "}
+            {state.lastBall.isWicket ? (
+              <span className="text-rose-400">WICKET</span>
+            ) : (
+              <span className="text-emerald-400">{state.lastBall.runs} runs</span>
+            )}
+          </div>
+          {state.lastBall.isWicket && (
+            <div className="text-xs text-white/60 mt-1">Bowler: {state.lastBall.bowler}</div>
+          )}
+        </div>
+      )}
+
+
       {[1, 2, 3, 4].map((i) => {
         const inn = state.innings[i];
         if (!inn) return null;
