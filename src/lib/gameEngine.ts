@@ -11,6 +11,12 @@ import {
 import { TEAMS, getTeam, getEligibleBatters } from "./teams";
 
 export const MATCH_DURATION_MS = 30 * 60 * 1000;
+export const MAX_ZEROS_PER_OVER = 3;
+
+export function zerosUsedThisOver(inn: InningsState): number {
+  const currentOver = inn.overNumber + 1;
+  return inn.balls.reduce((total, ball) => total + (ball.over === currentOver && ball.bat === 0 ? 1 : 0), 0);
+}
 
 export function createInitialState(roomCode: string): GameState {
   return {
@@ -172,6 +178,9 @@ export function setNewBatter(s: GameState, name: string): GameState {
 
 export function lockInput(s: GameState, side: Side, value: number): GameState {
   if (s.phase !== "playing") return s;
+  const inn = s.innings[s.currentInnings];
+  if (!inn) return s;
+  if (side === inn.battingSide && value === 0 && zerosUsedThisOver(inn) >= MAX_ZEROS_PER_OVER) return s;
   if (side === "host") {
     if (s.hostLocked) return s;
     return { ...s, hostInput: value, hostLocked: true, lastActionAt: Date.now() };
@@ -210,16 +219,24 @@ export function resolveBall(s: GameState): GameState {
   const batInput = battingSide === "host" ? s.hostInput! : s.awayInput!;
   const bowlInput = battingSide === "host" ? s.awayInput! : s.hostInput!;
   const phase = PHASE_OF_OVER(inn.overNumber);
+  const overZerosUsed = zerosUsedThisOver(inn);
+
+  if (batInput === 0 && overZerosUsed >= MAX_ZEROS_PER_OVER) {
+    return {
+      ...s,
+      hostInput: battingSide === "host" ? null : s.hostInput,
+      awayInput: battingSide === "away" ? null : s.awayInput,
+      hostLocked: battingSide === "host" ? false : s.hostLocked,
+      awayLocked: battingSide === "away" ? false : s.awayLocked,
+      lastActionAt: Date.now(),
+    };
+  }
 
   const striker = inn.striker!;
   const bowler = inn.bowler!;
   const batterZerosUsed = inn.zeroCount[striker] ?? 0;
-  // Max 3 zeros per over: after 3 zeros already used, a 4th zero = OUT (no invincibility)
-  const batterZeroProtect = batInput === 0 && batterZerosUsed < 3;
+  const batterZeroProtect = batInput === 0 && overZerosUsed < MAX_ZEROS_PER_OVER;
   let outcome = computeOutcome(batInput, bowlInput, phase, batterZeroProtect);
-  if (batInput === 0 && batterZerosUsed >= 3 && !outcome.out) {
-    outcome = { runs: 0, out: true, isSquare: false };
-  }
 
 
   // Stats

@@ -17,6 +17,7 @@ import {
   finalizeResult,
   teamForSide,
   computeTarget,
+  zerosUsedThisOver,
 } from "@/lib/gameEngine";
 import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
@@ -692,7 +693,7 @@ function GameBoard({
           disabled={myLocked || state.phase !== "playing"}
           onPick={(n) => send({ type: "input", side: mySide, value: n })}
           batterMode={iAmBatting}
-          batterZerosUsed={iAmBatting && inn.striker ? inn.zeroCount[inn.striker] ?? 0 : 0}
+          batterZerosUsed={iAmBatting ? zerosUsedThisOver(inn) : 0}
         />
         {iAmBatting && (
           <button
