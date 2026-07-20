@@ -367,6 +367,7 @@ function Room() {
           pausedAt: null,
           pausedReason: undefined,
           matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+          ballStartedAt: cur.ballStartedAt ? cur.ballStartedAt + elapsed : cur.ballStartedAt,
           lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
         return;
