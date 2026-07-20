@@ -600,6 +600,7 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
             ⏸ Pause
           </button>
         )}
+        <BallTimerToggle />
         {isIdle && <span className="text-amber-400 text-xs">⏸ idle</span>}
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
