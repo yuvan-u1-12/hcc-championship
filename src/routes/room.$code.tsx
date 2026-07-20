@@ -30,6 +30,7 @@ export const Route = createFileRoute("/room/$code")({
 
 const MAX_CHAT_LEN = 200;
 const MAX_CHAT_HISTORY = 50;
+const BALL_TIMER_MS = 20_000;
 
 function Room() {
   const { code } = useParams({ from: "/room/$code" });
