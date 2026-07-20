@@ -563,6 +563,19 @@ function OffenceWarning({ state }: { state: GameState }) {
 }
 
 // ============ Top Bar ============
+function BallTimerToggle() {
+  const [visible, setVisible] = useBallTimerVisible();
+  return (
+    <button
+      onClick={() => setVisible(!visible)}
+      title="Toggle 20s ball timer display"
+      className={`px-2 py-0.5 rounded text-xs ${visible ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}
+    >
+      ⏱ {visible ? "on" : "off"}
+    </button>
+  );
+}
+
 function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side; code: string; send: (e: RoomEvent) => void }) {
   const hostTeam = getTeam(state.hostTeamId!);
   const awayTeam = getTeam(state.awayTeamId!);
