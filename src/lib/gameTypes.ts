@@ -123,6 +123,16 @@ export interface GameState {
   // result
   result?: string;
   winner?: Side | "draw" | "tie";
+  // per-ball 20s timer
+  ballStartedAt?: number | null;
+  timeOffences?: Record<string, number>; // player name → # of offences
+  offenceWarning?: {
+    side: Side;
+    teamName: string;
+    player: string;
+    seconds: number;
+    until: number;
+  } | null;
 }
 
 export const PHASE_OF_OVER = (overIndex: number): Phase =>
