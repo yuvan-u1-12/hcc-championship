@@ -285,9 +285,41 @@ function Room() {
           senderSide ?? (e.side === "host" || e.side === "away" ? e.side : null);
         if (!actualSide) return;
         if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
-        let s = lockInput(cur, actualSide, e.value);
+        // late-input offence detection (does not affect gameplay)
+        let working = cur;
+        if (working.phase === "playing" && working.ballStartedAt && !working.paused) {
+          const elapsed = Date.now() - working.ballStartedAt;
+          if (elapsed > BALL_TIMER_MS) {
+            const innC = working.innings[working.currentInnings];
+            const isBatting = innC && actualSide === innC.battingSide;
+            const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
+            const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
+            const seconds = Math.floor(elapsed / 1000);
+            const offences = { ...(working.timeOffences ?? {}) };
+            if (player !== "?") offences[player] = (offences[player] ?? 0) + 1;
+            working = {
+              ...working,
+              timeOffences: offences,
+              offenceWarning: { side: actualSide, teamName, player, seconds, until: Date.now() + 2000 },
+            };
+          }
+        }
+        let s = lockInput(working, actualSide, e.value);
         if (s.hostLocked && s.awayLocked) {
-          s = resolveBall(s);
+          // if a warning is active, delay resolution until it clears
+          const warnUntil = s.offenceWarning?.until ?? 0;
+          const delay = warnUntil - Date.now();
+          if (delay > 0) {
+            applyAndBroadcast(s);
+            setTimeout(() => {
+              const latest = stateRef.current;
+              if (!latest || !latest.hostLocked || !latest.awayLocked) return;
+              if (latest.phase !== "playing") return;
+              applyAndBroadcast(resolveBall({ ...latest, offenceWarning: null }));
+            }, delay + 50);
+            return;
+          }
+          s = resolveBall({ ...s, offenceWarning: null });
         }
         applyAndBroadcast(s);
         return;
