@@ -486,6 +486,8 @@ function RoomUI({
     <div className="min-h-screen flex flex-col bg-slate-950 text-white">
       <TopBar state={state} mySide={mySide} code={code} send={send} />
       {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
+      <OffenceWarning state={state} />
+      <BallTimerBadge state={state} />
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
           <Scorecard state={state} code={code} isHost={mySide === "host"} />
@@ -498,6 +500,64 @@ function RoomUI({
         )}
       </main>
       <ChatBox state={state} mySide={mySide} send={send} />
+    </div>
+  );
+}
+
+// ============ Ball Timer Badge (per-user toggle) ============
+function useBallTimerVisible(): [boolean, (v: boolean) => void] {
+  const [visible, setVisible] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const v = window.localStorage.getItem("hcc:showBallTimer");
+    return v === null ? true : v === "1";
+  });
+  const set = (v: boolean) => {
+    setVisible(v);
+    try {
+      window.localStorage.setItem("hcc:showBallTimer", v ? "1" : "0");
+    } catch {}
+  };
+  return [visible, set];
+}
+
+function BallTimerBadge({ state }: { state: GameState }) {
+  const [visible] = useBallTimerVisible();
+  if (!visible) return null;
+  if (state.phase !== "playing" || !state.ballStartedAt) return null;
+  const now = state.paused && state.pausedAt ? state.pausedAt : Date.now();
+  const elapsedMs = Math.max(0, now - state.ballStartedAt);
+  const remaining = Math.max(0, BALL_TIMER_MS - elapsedMs);
+  const seconds = Math.ceil(remaining / 1000);
+  const overBy = elapsedMs > BALL_TIMER_MS ? Math.floor((elapsedMs - BALL_TIMER_MS) / 1000) : 0;
+  let color = "bg-emerald-500/80 text-emerald-950";
+  if (elapsedMs > BALL_TIMER_MS) color = "bg-red-600 text-white animate-pulse";
+  else if (elapsedMs > 15_000) color = "bg-orange-500 text-orange-950";
+  else if (elapsedMs > 10_000) color = "bg-yellow-500 text-yellow-950";
+  return (
+    <div className={`fixed left-3 bottom-24 z-30 px-3 py-1.5 rounded-full font-mono text-sm font-bold shadow-lg ${color}`}>
+      ⏱ {overBy > 0 ? `+${overBy}s` : `${seconds}s`}
+    </div>
+  );
+}
+
+function OffenceWarning({ state }: { state: GameState }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!state.offenceWarning) return;
+    const id = setInterval(() => setTick((n) => n + 1), 200);
+    return () => clearInterval(id);
+  }, [state.offenceWarning?.until]);
+  const w = state.offenceWarning;
+  if (!w || w.until <= Date.now()) return null;
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+      <div className="rounded-2xl bg-red-600 text-white px-8 py-6 max-w-md text-center shadow-2xl border-4 border-red-300">
+        <div className="text-2xl font-black mb-2">⚠️ TIME OFFENCE</div>
+        <div className="text-lg font-semibold">
+          {w.teamName} — <span className="underline">{w.player}</span>
+        </div>
+        <div className="text-sm opacity-90 mt-1">Took {w.seconds}s (limit 20s)</div>
+      </div>
     </div>
   );
 }
