@@ -522,7 +522,6 @@ function useBallTimerVisible(): [boolean, (v: boolean) => void] {
 
 function BallTimerBadge({ state }: { state: GameState }) {
   const [visible] = useBallTimerVisible();
-  const [expanded, setExpanded] = useState(false);
   if (!visible) return null;
   if (state.phase !== "playing" || !state.ballStartedAt) return null;
   const now = state.paused && state.pausedAt ? state.pausedAt : Date.now();
@@ -530,68 +529,13 @@ function BallTimerBadge({ state }: { state: GameState }) {
   const remaining = Math.max(0, BALL_TIMER_MS - elapsedMs);
   const seconds = Math.ceil(remaining / 1000);
   const overBy = elapsedMs > BALL_TIMER_MS ? Math.floor((elapsedMs - BALL_TIMER_MS) / 1000) : 0;
-  let color = "bg-emerald-500/90 text-emerald-950";
-  let ring = "ring-emerald-300";
-  if (elapsedMs > BALL_TIMER_MS) { color = "bg-red-600 text-white animate-pulse"; ring = "ring-red-300"; }
-  else if (elapsedMs > 15_000) { color = "bg-orange-500 text-orange-950"; ring = "ring-orange-200"; }
-  else if (elapsedMs > 10_000) { color = "bg-yellow-500 text-yellow-950"; ring = "ring-yellow-200"; }
-
-  const pct = Math.min(100, (elapsedMs / BALL_TIMER_MS) * 100);
-  const offences = state.timeOffences ?? {};
-  const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
-  const hostTeam = getTeam(state.hostTeamId!);
-  const awayTeam = getTeam(state.awayTeamId!);
-
-  const perTeam = (side: Side) => {
-    const team = side === "host" ? hostTeam : awayTeam;
-    if (!team) return 0;
-    const names = new Set(team.players.map((p) => p.name));
-    return Object.entries(offences).reduce((sum, [n, c]) => sum + (names.has(n) ? c : 0), 0);
-  };
-
-  if (!expanded) {
-    return (
-      <button
-        onClick={() => setExpanded(true)}
-        title="Click to expand"
-        className={`fixed left-3 bottom-24 z-30 px-3 py-1.5 rounded-full font-mono text-sm font-bold shadow-lg ring-2 ${color} ${ring}`}
-      >
-        ⏱ {overBy > 0 ? `+${overBy}s` : `${seconds}s`}
-      </button>
-    );
-  }
-
+  let color = "bg-emerald-500/80 text-emerald-950";
+  if (elapsedMs > BALL_TIMER_MS) color = "bg-red-600 text-white animate-pulse";
+  else if (elapsedMs > 15_000) color = "bg-orange-500 text-orange-950";
+  else if (elapsedMs > 10_000) color = "bg-yellow-500 text-yellow-950";
   return (
-    <div className={`fixed left-3 bottom-24 z-30 rounded-xl shadow-2xl ring-2 ${ring} bg-slate-900 border border-white/10 w-64 overflow-hidden`}>
-      <div className={`px-3 py-2 flex items-center justify-between ${color}`}>
-        <div className="font-mono font-black text-lg">
-          ⏱ {overBy > 0 ? `+${overBy}s over` : `${seconds}s left`}
-        </div>
-        <button onClick={() => setExpanded(false)} className="text-xs opacity-80 hover:opacity-100">✕</button>
-      </div>
-      <div className="h-1.5 bg-white/10">
-        <div
-          className={`h-full transition-all ${elapsedMs > BALL_TIMER_MS ? "bg-red-500" : elapsedMs > 15_000 ? "bg-orange-500" : elapsedMs > 10_000 ? "bg-yellow-500" : "bg-emerald-500"}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="p-3 text-xs text-white/80 space-y-1">
-        <div className="text-white/60">20s per ball · exceeds = time offence</div>
-        {inn && (
-          <div>
-            On strike: <span className="text-white font-semibold">{inn.striker ?? "—"}</span>
-            {" · "}Bowler: <span className="text-white font-semibold">{inn.bowler ?? "—"}</span>
-          </div>
-        )}
-        <div className="flex justify-between pt-1 border-t border-white/10 mt-1">
-          <span>{hostTeam?.id ?? "HOST"}</span>
-          <span className="font-mono">{perTeam("host")} offence{perTeam("host") === 1 ? "" : "s"}</span>
-        </div>
-        <div className="flex justify-between">
-          <span>{awayTeam?.id ?? "AWAY"}</span>
-          <span className="font-mono">{perTeam("away")} offence{perTeam("away") === 1 ? "" : "s"}</span>
-        </div>
-      </div>
+    <div className={`fixed left-3 bottom-24 z-30 px-3 py-1.5 rounded-full font-mono text-sm font-bold shadow-lg ${color}`}>
+      ⏱ {overBy > 0 ? `+${overBy}s` : `${seconds}s`}
     </div>
   );
 }
@@ -605,25 +549,14 @@ function OffenceWarning({ state }: { state: GameState }) {
   }, [state.offenceWarning?.until]);
   const w = state.offenceWarning;
   if (!w || w.until <= Date.now()) return null;
-  const count = (state.timeOffences ?? {})[w.player] ?? 1;
-  const isWarning = count <= 2;
-  const headline = isWarning
-    ? count === 1
-      ? "⚠️ WARNING (1 of 2)"
-      : "⚠️ FINAL WARNING (2 of 2)"
-    : `⛔ TIME OFFENCE #${count}`;
-  const bg = isWarning ? "bg-amber-500 text-amber-950 border-amber-200" : "bg-red-600 text-white border-red-300";
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className={`rounded-2xl px-8 py-6 max-w-md text-center shadow-2xl border-4 ${bg}`}>
-        <div className="text-2xl font-black mb-2">{headline}</div>
+      <div className="rounded-2xl bg-red-600 text-white px-8 py-6 max-w-md text-center shadow-2xl border-4 border-red-300">
+        <div className="text-2xl font-black mb-2">⚠️ TIME OFFENCE</div>
         <div className="text-lg font-semibold">
           {w.teamName} — <span className="underline">{w.player}</span>
         </div>
         <div className="text-sm opacity-90 mt-1">Took {w.seconds}s (limit 20s)</div>
-        {isWarning && count === 2 && (
-          <div className="text-xs mt-2 font-semibold">Next offence will be recorded without warning.</div>
-        )}
       </div>
     </div>
   );
