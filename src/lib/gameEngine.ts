@@ -133,6 +133,8 @@ export function setBowler(s: GameState, bowler: string): GameState {
     matchStartedAt: s.matchStartedAt ?? Date.now(),
     matchEndsAt: s.matchEndsAt ?? Date.now() + MATCH_DURATION_MS,
     lastActionAt: Date.now(),
+    ballStartedAt: Date.now(),
+    offenceWarning: null,
   };
 }
 
