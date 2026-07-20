@@ -133,6 +133,8 @@ export function setBowler(s: GameState, bowler: string): GameState {
     matchStartedAt: s.matchStartedAt ?? Date.now(),
     matchEndsAt: s.matchEndsAt ?? Date.now() + MATCH_DURATION_MS,
     lastActionAt: Date.now(),
+    ballStartedAt: Date.now(),
+    offenceWarning: null,
   };
 }
 
@@ -173,6 +175,8 @@ export function setNewBatter(s: GameState, name: string): GameState {
     hostLocked: false,
     awayLocked: false,
     lastActionAt: Date.now(),
+    ballStartedAt: Date.now(),
+    offenceWarning: null,
   };
 }
 
@@ -389,6 +393,8 @@ export function resolveBall(s: GameState): GameState {
     pendingSelect,
     lastBall: log,
     lastActionAt: Date.now(),
+    ballStartedAt: nextPhaseGame === "playing" ? Date.now() : null,
+    offenceWarning: null,
   };
 }
 
