@@ -175,6 +175,8 @@ export function setNewBatter(s: GameState, name: string): GameState {
     hostLocked: false,
     awayLocked: false,
     lastActionAt: Date.now(),
+    ballStartedAt: Date.now(),
+    offenceWarning: null,
   };
 }
 
