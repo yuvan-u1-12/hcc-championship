@@ -393,6 +393,8 @@ export function resolveBall(s: GameState): GameState {
     pendingSelect,
     lastBall: log,
     lastActionAt: Date.now(),
+    ballStartedAt: nextPhaseGame === "playing" ? Date.now() : null,
+    offenceWarning: null,
   };
 }
 
