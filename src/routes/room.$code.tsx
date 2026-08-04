@@ -324,15 +324,21 @@ function Room() {
         if (!actualSide) return;
         if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
         // late-input offence detection (does not affect gameplay)
+        // Trust the sender's locally-measured elapsed time (their own 20s window),
+        // falling back to host-side measurement only if it wasn't reported.
         let working = cur;
+        const reported = typeof (e as any).elapsedMs === "number" && isFinite((e as any).elapsedMs)
+          ? Math.max(0, Math.min(10 * 60_000, (e as any).elapsedMs as number))
+          : null;
         if (working.phase === "playing" && working.ballStartedAt && !working.paused) {
-          const elapsed = Date.now() - working.ballStartedAt;
-          if (elapsed > BALL_TIMER_MS) {
+          const alreadyLocked = actualSide === "host" ? working.hostLocked : working.awayLocked;
+          const elapsed = reported ?? Date.now() - working.ballStartedAt;
+          if (!alreadyLocked && elapsed >= BALL_TIMER_MS + BALL_TIMER_GRACE_MS) {
             const innC = working.innings[working.currentInnings];
             const isBatting = innC && actualSide === innC.battingSide;
             const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
             const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
-            const seconds = Math.floor(elapsed / 1000);
+            const seconds = Math.round(elapsed / 1000);
             const offences = { ...(working.timeOffences ?? {}) };
             if (player !== "?") offences[player] = (offences[player] ?? 0) + 1;
             working = {
