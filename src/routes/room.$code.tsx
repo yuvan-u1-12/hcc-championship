@@ -566,10 +566,16 @@ function useBallTimerVisible(): [boolean, (v: boolean) => void] {
 
 function BallTimerBadge({ state }: { state: GameState }) {
   const [visible] = useBallTimerVisible();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 250);
+    return () => clearInterval(id);
+  }, []);
   if (!visible) return null;
   if (state.phase !== "playing" || !state.ballStartedAt) return null;
-  const now = state.paused && state.pausedAt ? state.pausedAt : Date.now();
-  const elapsedMs = Math.max(0, now - state.ballStartedAt);
+  const local = localBallElapsed();
+  if (local === null) return null;
+  const elapsedMs = local;
   const remaining = Math.max(0, BALL_TIMER_MS - elapsedMs);
   const seconds = Math.ceil(remaining / 1000);
   const overBy = elapsedMs > BALL_TIMER_MS ? Math.floor((elapsedMs - BALL_TIMER_MS) / 1000) : 0;
