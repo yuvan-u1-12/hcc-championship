@@ -449,6 +449,7 @@ function Room() {
       }}
       onTeamPick={(id) => {
         setTeamId(id);
+        saveSide(code, side, id);
         if (side === "host") {
           const ns = { ...state, hostTeamId: id };
           applyAndBroadcast(ns);
