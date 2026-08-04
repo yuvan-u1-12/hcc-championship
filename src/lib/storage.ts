@@ -35,8 +35,12 @@ export function saveSide(room: string, side: "host" | "away", teamId: string | n
   } catch {}
 }
 export function loadSide(room: string): { side: "host" | "away" | null; teamId: string | null } {
-  return {
-    side: (localStorage.getItem(SIDE_KEY(room)) as any) ?? null,
-    teamId: localStorage.getItem(TEAM_KEY(room)),
-  };
+  try {
+    return {
+      side: (localStorage.getItem(SIDE_KEY(room)) as any) ?? null,
+      teamId: localStorage.getItem(TEAM_KEY(room)),
+    };
+  } catch {
+    return { side: null, teamId: null };
+  }
 }
