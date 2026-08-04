@@ -29,8 +29,10 @@ export function clearState(room: string) {
   } catch {}
 }
 export function saveSide(room: string, side: "host" | "away", teamId: string | null) {
-  localStorage.setItem(SIDE_KEY(room), side);
-  if (teamId) localStorage.setItem(TEAM_KEY(room), teamId);
+  try {
+    localStorage.setItem(SIDE_KEY(room), side);
+    if (teamId) localStorage.setItem(TEAM_KEY(room), teamId);
+  } catch {}
 }
 export function loadSide(room: string): { side: "host" | "away" | null; teamId: string | null } {
   return {
