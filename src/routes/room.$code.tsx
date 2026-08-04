@@ -843,7 +843,9 @@ function GameBoard({
         </div>
         <Numpad
           disabled={myLocked || state.phase !== "playing"}
-          onPick={(n) => send({ type: "input", side: mySide, value: n })}
+          onPick={(n) =>
+            send({ type: "input", side: mySide, value: n, elapsedMs: localBallElapsed() ?? 0 } as any)
+          }
           batterMode={iAmBatting}
           batterZerosUsed={iAmBatting ? zerosUsedThisOver(inn) : 0}
         />
