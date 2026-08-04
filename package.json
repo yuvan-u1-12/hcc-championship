@@ -86,7 +86,7 @@
     "vite": "^8.0.16"
   },
   "resolutions": {
-    "seroval": "1.6.2",
-    "seroval-plugins": "1.6.2"
+    "seroval": "1.6.0",
+    "seroval-plugins": "1.6.0"
   }
 }
