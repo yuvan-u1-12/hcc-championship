@@ -22,7 +22,7 @@ import {
 import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
 import { joinRoom, leaveRoom, type RoomEvent } from "@/lib/realtime";
-import { loadSide, loadState, saveState } from "@/lib/storage";
+import { loadSide, loadState, saveSide, saveState } from "@/lib/storage";
 
 export const Route = createFileRoute("/room/$code")({
   component: Room,
@@ -84,24 +84,31 @@ function Room() {
   // hydrate identity + cached state
   useEffect(() => {
     const ident = loadSide(code);
-    if (!ident.side) {
-      // joined via link without going through lobby — default to away, must pick team
-      setSide("away");
-      sideRef.current = "away";
-    } else {
-      setSide(ident.side);
-      sideRef.current = ident.side;
-      setTeamId(ident.teamId);
-    }
     const cached = loadState(code);
+    // identity priority: explicit side key → side recorded with the cached match
+    // state (survives a lost/blocked side key) → away (link join, must pick team)
+    const resolvedSide: Side = ident.side ?? cached?.side ?? "away";
+    const resolvedTeam =
+      ident.teamId ??
+      (cached ? (resolvedSide === "host" ? cached.state.hostTeamId : cached.state.awayTeamId) : null);
+    setSide(resolvedSide);
+    sideRef.current = resolvedSide;
+    setTeamId(resolvedTeam);
+    // re-persist so the role is stable across any later refresh
+    saveSide(code, resolvedSide, resolvedTeam);
+
     if (cached && Date.now() - cached.at < 5 * 60 * 1000) {
       setState(cached.state);
       stateRef.current = cached.state;
-    } else if (ident.side === "host") {
+    } else if (resolvedSide === "host" && !cached) {
       const init = createInitialState(code);
-      init.hostTeamId = ident.teamId;
+      init.hostTeamId = resolvedTeam;
       setState(init);
       stateRef.current = init;
+    } else if (cached && resolvedSide === "host") {
+      // stale cache but we are still the host — keep the match, don't reset it
+      setState(cached.state);
+      stateRef.current = cached.state;
     }
   }, [code]);
 
@@ -170,7 +177,7 @@ function Room() {
 
   // persist on every change
   useEffect(() => {
-    if (state) saveState(code, state);
+    if (state) saveState(code, state, sideRef.current);
     stateRef.current = state;
   }, [state, code]);
 
@@ -442,6 +449,7 @@ function Room() {
       }}
       onTeamPick={(id) => {
         setTeamId(id);
+        saveSide(code, side, id);
         if (side === "host") {
           const ns = { ...state, hostTeamId: id };
           applyAndBroadcast(ns);
