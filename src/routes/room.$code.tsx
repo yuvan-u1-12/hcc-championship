@@ -22,7 +22,7 @@ import {
 import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
 import { joinRoom, leaveRoom, type RoomEvent } from "@/lib/realtime";
-import { loadSide, loadState, saveState } from "@/lib/storage";
+import { loadSide, loadState, saveSide, saveState } from "@/lib/storage";
 
 export const Route = createFileRoute("/room/$code")({
   component: Room,
