@@ -177,7 +177,7 @@ function Room() {
 
   // persist on every change
   useEffect(() => {
-    if (state) saveState(code, state);
+    if (state) saveState(code, state, sideRef.current);
     stateRef.current = state;
   }, [state, code]);
 
