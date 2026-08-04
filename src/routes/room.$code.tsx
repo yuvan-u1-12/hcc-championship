@@ -31,6 +31,43 @@ export const Route = createFileRoute("/room/$code")({
 const MAX_CHAT_LEN = 200;
 const MAX_CHAT_HISTORY = 50;
 const BALL_TIMER_MS = 20_000;
+// tolerance for network/clock jitter before an offence is recorded
+const BALL_TIMER_GRACE_MS = 1_000;
+
+// ===== Local (per-client) ball clock =====
+// Each client measures the 20s window with its OWN clock, starting when it first
+// sees a new ball. This avoids clock-skew / broadcast-latency shaving seconds off.
+let lbKey: string | null = null;
+let lbStart: number | null = null;
+let lbPausedAt: number | null = null;
+
+function syncLocalBallClock(s: GameState | null) {
+  if (!s || s.phase !== "playing" || !s.ballStartedAt) {
+    lbKey = null;
+    lbStart = null;
+    lbPausedAt = null;
+    return;
+  }
+  const inn = s.innings[s.currentInnings];
+  const key = `${s.currentInnings}:${inn?.ballsBowled ?? 0}:${s.ballStartedAt}`;
+  if (key !== lbKey) {
+    lbKey = key;
+    lbStart = Date.now();
+    lbPausedAt = null;
+  }
+  if (s.paused) {
+    if (lbPausedAt === null) lbPausedAt = Date.now();
+  } else if (lbPausedAt !== null) {
+    if (lbStart !== null) lbStart += Date.now() - lbPausedAt;
+    lbPausedAt = null;
+  }
+}
+
+function localBallElapsed(): number | null {
+  if (lbStart === null) return null;
+  const now = lbPausedAt ?? Date.now();
+  return Math.max(0, now - lbStart);
+}
 
 function Room() {
   const { code } = useParams({ from: "/room/$code" });
@@ -287,15 +324,21 @@ function Room() {
         if (!actualSide) return;
         if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
         // late-input offence detection (does not affect gameplay)
+        // Trust the sender's locally-measured elapsed time (their own 20s window),
+        // falling back to host-side measurement only if it wasn't reported.
         let working = cur;
+        const reported = typeof (e as any).elapsedMs === "number" && isFinite((e as any).elapsedMs)
+          ? Math.max(0, Math.min(10 * 60_000, (e as any).elapsedMs as number))
+          : null;
         if (working.phase === "playing" && working.ballStartedAt && !working.paused) {
-          const elapsed = Date.now() - working.ballStartedAt;
-          if (elapsed > BALL_TIMER_MS) {
+          const alreadyLocked = actualSide === "host" ? working.hostLocked : working.awayLocked;
+          const elapsed = reported ?? Date.now() - working.ballStartedAt;
+          if (!alreadyLocked && elapsed >= BALL_TIMER_MS + BALL_TIMER_GRACE_MS) {
             const innC = working.innings[working.currentInnings];
             const isBatting = innC && actualSide === innC.battingSide;
             const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
             const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
-            const seconds = Math.floor(elapsed / 1000);
+            const seconds = Math.round(elapsed / 1000);
             const offences = { ...(working.timeOffences ?? {}) };
             if (player !== "?") offences[player] = (offences[player] ?? 0) + 1;
             working = {
@@ -438,6 +481,7 @@ function RoomUI({
   const hostTeam = state.hostTeamId ? getTeam(state.hostTeamId) : null;
   const awayTeam = state.awayTeamId ? getTeam(state.awayTeamId) : null;
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
+  syncLocalBallClock(state);
 
   // ---- Lobby waiting ----
   if (state.phase === "lobby") {
@@ -522,10 +566,16 @@ function useBallTimerVisible(): [boolean, (v: boolean) => void] {
 
 function BallTimerBadge({ state }: { state: GameState }) {
   const [visible] = useBallTimerVisible();
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 250);
+    return () => clearInterval(id);
+  }, []);
   if (!visible) return null;
   if (state.phase !== "playing" || !state.ballStartedAt) return null;
-  const now = state.paused && state.pausedAt ? state.pausedAt : Date.now();
-  const elapsedMs = Math.max(0, now - state.ballStartedAt);
+  const local = localBallElapsed();
+  if (local === null) return null;
+  const elapsedMs = local;
   const remaining = Math.max(0, BALL_TIMER_MS - elapsedMs);
   const seconds = Math.ceil(remaining / 1000);
   const overBy = elapsedMs > BALL_TIMER_MS ? Math.floor((elapsedMs - BALL_TIMER_MS) / 1000) : 0;
@@ -799,7 +849,9 @@ function GameBoard({
         </div>
         <Numpad
           disabled={myLocked || state.phase !== "playing"}
-          onPick={(n) => send({ type: "input", side: mySide, value: n })}
+          onPick={(n) =>
+            send({ type: "input", side: mySide, value: n, elapsedMs: localBallElapsed() ?? 0 } as any)
+          }
           batterMode={iAmBatting}
           batterZerosUsed={iAmBatting ? zerosUsedThisOver(inn) : 0}
         />

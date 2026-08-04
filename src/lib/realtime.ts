@@ -4,7 +4,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 type RoomEventBase =
   | { type: "hello"; side: "host" | "away"; clientId: string; teamId?: string | null }
   | { type: "state"; state: any }
-  | { type: "input"; side: "host" | "away"; value: number }
+  | { type: "input"; side: "host" | "away"; value: number; elapsedMs?: number }
   | { type: "select"; kind: "openers" | "bowler" | "batter"; payload: any; from: "host" | "away" }
   | { type: "toss_call"; call: "heads" | "tails" }
   | { type: "toss_choice"; choice: "bat" | "bowl" }
