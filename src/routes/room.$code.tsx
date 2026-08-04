@@ -31,6 +31,43 @@ export const Route = createFileRoute("/room/$code")({
 const MAX_CHAT_LEN = 200;
 const MAX_CHAT_HISTORY = 50;
 const BALL_TIMER_MS = 20_000;
+// tolerance for network/clock jitter before an offence is recorded
+const BALL_TIMER_GRACE_MS = 1_000;
+
+// ===== Local (per-client) ball clock =====
+// Each client measures the 20s window with its OWN clock, starting when it first
+// sees a new ball. This avoids clock-skew / broadcast-latency shaving seconds off.
+let lbKey: string | null = null;
+let lbStart: number | null = null;
+let lbPausedAt: number | null = null;
+
+function syncLocalBallClock(s: GameState | null) {
+  if (!s || s.phase !== "playing" || !s.ballStartedAt) {
+    lbKey = null;
+    lbStart = null;
+    lbPausedAt = null;
+    return;
+  }
+  const inn = s.innings[s.currentInnings];
+  const key = `${s.currentInnings}:${inn?.ballsBowled ?? 0}:${s.ballStartedAt}`;
+  if (key !== lbKey) {
+    lbKey = key;
+    lbStart = Date.now();
+    lbPausedAt = null;
+  }
+  if (s.paused) {
+    if (lbPausedAt === null) lbPausedAt = Date.now();
+  } else if (lbPausedAt !== null) {
+    if (lbStart !== null) lbStart += Date.now() - lbPausedAt;
+    lbPausedAt = null;
+  }
+}
+
+function localBallElapsed(): number | null {
+  if (lbStart === null) return null;
+  const now = lbPausedAt ?? Date.now();
+  return Math.max(0, now - lbStart);
+}
 
 function Room() {
   const { code } = useParams({ from: "/room/$code" });
