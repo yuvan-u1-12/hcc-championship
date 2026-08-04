@@ -481,6 +481,7 @@ function RoomUI({
   const hostTeam = state.hostTeamId ? getTeam(state.hostTeamId) : null;
   const awayTeam = state.awayTeamId ? getTeam(state.awayTeamId) : null;
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
+  syncLocalBallClock(state);
 
   // ---- Lobby waiting ----
   if (state.phase === "lobby") {
