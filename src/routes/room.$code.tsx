@@ -641,7 +641,6 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const elapsed = matchElapsedMs(state);
   const myThink = state.thinkMs?.[mySide] ?? 0;
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
@@ -659,13 +658,11 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
           Innings {state.currentInnings || "—"} · {phase}
         </span>
         {inn && (
-          <span>
-            Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver} / {OVERS_PER_INNINGS}
+          <span className="font-mono px-2 py-0.5 rounded bg-white/10" title="Overs bowled in this innings">
+            {inn.overNumber}.{inn.ballInOver} / {OVERS_PER_INNINGS} ov
           </span>
         )}
-        <span className={`font-mono ${state.paused ? "text-amber-300" : ""}`} title="Total match stopwatch">
-          ⏱ {formatClock(elapsed)}{state.paused ? " ⏸" : ""}
-        </span>
+        {state.paused && <span className="text-amber-300">⏸ paused</span>}
         <span className="font-mono text-white/70" title="Your total playing time (waiting time excluded)">
           🧠 {formatClock(myThink)}
         </span>
