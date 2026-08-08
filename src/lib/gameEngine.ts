@@ -342,6 +342,10 @@ export function resolveBall(s: GameState): GameState {
       inn.striker = inn.nonStriker;
       inn.nonStriker = tmp;
     }
+    // overs limit reached — innings closes
+    if (inn.overNumber >= OVERS_PER_INNINGS) {
+      inn.closed = true;
+    }
     if (!inn.closed) {
       // If wicket fell on this last ball, striker is null and non-striker is the survivor.
       // Promote the survivor to striker and request the new batter for the non-striker end first,
