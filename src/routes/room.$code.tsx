@@ -137,7 +137,7 @@ function Room() {
                 pausedAt: null,
                 pausedReason: undefined,
                 disconnectedSide: null,
-                matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+                pausedTotalMs: (cur.pausedTotalMs ?? 0) + elapsed,
                 lastActionAt: Date.now() + 5000,
                 hostConnected: true,
                 awayConnected: true,
@@ -273,7 +273,7 @@ function Room() {
             pausedAt: null,
             pausedReason: undefined,
             disconnectedSide: null,
-            matchEndsAt: s.matchEndsAt ? s.matchEndsAt + elapsed : s.matchEndsAt,
+            pausedTotalMs: (s.pausedTotalMs ?? 0) + elapsed,
             lastActionAt: Date.now() + 5000,
           };
         }
@@ -414,7 +414,7 @@ function Room() {
           paused: false,
           pausedAt: null,
           pausedReason: undefined,
-          matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+          pausedTotalMs: (cur.pausedTotalMs ?? 0) + elapsed,
           ballStartedAt: cur.ballStartedAt ? cur.ballStartedAt + elapsed : cur.ballStartedAt,
           lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
