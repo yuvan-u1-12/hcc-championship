@@ -10,7 +10,7 @@ import {
 } from "./gameTypes";
 import { TEAMS, getTeam, getEligibleBatters } from "./teams";
 
-export const MATCH_DURATION_MS = 30 * 60 * 1000;
+export const OVERS_PER_INNINGS = 15;
 export const MAX_ZEROS_PER_OVER = 3;
 
 export function zerosUsedThisOver(inn: InningsState): number {
