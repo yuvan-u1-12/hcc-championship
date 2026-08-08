@@ -338,10 +338,14 @@ function Room() {
         if (working.phase === "playing" && working.ballStartedAt && !working.paused) {
           const alreadyLocked = actualSide === "host" ? working.hostLocked : working.awayLocked;
           const elapsed = reported ?? Date.now() - working.ballStartedAt;
+          const innC = working.innings[working.currentInnings];
+          const isBatting = innC && actualSide === innC.battingSide;
+          const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
+          if (!alreadyLocked) {
+            // individual stopwatch: only counts the time this side actually took to move
+            working = addThinkTime(working, actualSide, player !== "?" ? player : null, elapsed);
+          }
           if (!alreadyLocked && elapsed >= BALL_TIMER_MS + BALL_TIMER_GRACE_MS) {
-            const innC = working.innings[working.currentInnings];
-            const isBatting = innC && actualSide === innC.battingSide;
-            const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
             const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
             const seconds = Math.round(elapsed / 1000);
             const offences = { ...(working.timeOffences ?? {}) };
