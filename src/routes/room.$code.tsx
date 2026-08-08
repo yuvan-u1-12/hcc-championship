@@ -216,11 +216,6 @@ function Room() {
           applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now(), pausedReason: "idle" });
           return;
         }
-        const ns = checkTimeUp(s);
-        if (ns !== s) {
-          applyAndBroadcast(ns);
-          return;
-        }
       }
       force((n) => n + 1); // refresh timer display on both sides
     }, 1000);
