@@ -641,10 +641,8 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const nowRef = state.paused && state.pausedAt ? state.pausedAt : Date.now();
-  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - nowRef) : 30 * 60 * 1000;
-  const mm = Math.floor(timeLeft / 60000);
-  const ss = Math.floor((timeLeft % 60000) / 1000);
+  const elapsed = matchElapsedMs(state);
+  const myThink = state.thinkMs?.[mySide] ?? 0;
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
   const canPause = state.phase !== "lobby" && state.phase !== "toss" && state.phase !== "match_over";
@@ -662,11 +660,14 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
         </span>
         {inn && (
           <span>
-            Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver}
+            Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver} / {OVERS_PER_INNINGS}
           </span>
         )}
-        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""} ${state.paused ? "text-amber-300" : ""}`}>
-          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}{state.paused ? " ⏸" : ""}
+        <span className={`font-mono ${state.paused ? "text-amber-300" : ""}`} title="Total match stopwatch">
+          ⏱ {formatClock(elapsed)}{state.paused ? " ⏸" : ""}
+        </span>
+        <span className="font-mono text-white/70" title="Your total playing time (waiting time excluded)">
+          🧠 {formatClock(myThink)}
         </span>
         {canPause && !state.paused && (
           <button onClick={() => send({ type: "pause" })} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/40">
