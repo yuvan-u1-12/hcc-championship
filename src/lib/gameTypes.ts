@@ -108,12 +108,16 @@ export interface GameState {
   };
   // timer
   matchStartedAt: number | null;
-  matchEndsAt: number | null; // matchStartedAt + 30min
+  matchEndsAt: number | null; // unused (no match time limit)
   lastActionAt: number;
   paused?: boolean;
   pausedAt?: number | null;
   pausedReason?: "manual" | "idle" | "disconnect";
   disconnectedSide?: Side | null;
+  // stopwatches
+  pausedTotalMs?: number; // total time spent paused (excluded from match stopwatch)
+  thinkMs?: { host: number; away: number }; // active thinking time per side
+  playerThinkMs?: Record<string, number>; // active thinking time per player
   // chat
   chat: { side: Side; text: string; t: number }[];
   // last result for UI display
