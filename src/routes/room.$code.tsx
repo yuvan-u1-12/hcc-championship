@@ -1319,7 +1319,57 @@ function Scorecard({ state, code: _code, isHost: _isHost }: { state: GameState; 
           </div>
         );
       })}
+      <TimersPanel state={state} />
       <OffencesPanel state={state} />
+    </div>
+  );
+}
+
+function TimersPanel({ state }: { state: GameState }) {
+  const hostName = teamForSide(state, "host")?.name ?? "Host";
+  const awayName = teamForSide(state, "away")?.name ?? "Away";
+  const hostMs = state.thinkMs?.host ?? 0;
+  const awayMs = state.thinkMs?.away ?? 0;
+  const players = Object.entries(state.playerThinkMs ?? {}).filter(([, ms]) => ms > 0);
+  players.sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-6">
+      <h3 className="font-bold mb-3">⏱ Match Time</h3>
+      <div className="grid gap-3 sm:grid-cols-3 mb-4">
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">Total match stopwatch</div>
+          <div className="font-mono text-xl">{formatClock(matchElapsedMs(state))}</div>
+        </div>
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">{hostName} playing time</div>
+          <div className="font-mono text-xl">{formatClock(hostMs)}</div>
+        </div>
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">{awayName} playing time</div>
+          <div className="font-mono text-xl">{formatClock(awayMs)}</div>
+        </div>
+      </div>
+      {players.length > 0 && (
+        <table className="w-full text-sm">
+          <thead className="text-white/60">
+            <tr>
+              <th className="text-left py-1">Player</th>
+              <th className="text-right py-1">Time on the move</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map(([name, ms]) => (
+              <tr key={name} className="border-t border-white/5">
+                <td className="py-1">{name}</td>
+                <td className="py-1 text-right font-mono">{formatClock(ms)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div className="text-xs text-white/50 mt-2">
+        Individual timers count only the time a player took to play their moves — waiting and paused time is excluded.
+      </div>
     </div>
   );
 }
