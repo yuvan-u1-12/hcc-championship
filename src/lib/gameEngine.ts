@@ -565,30 +565,33 @@ export function startNextInnings(
   return startInnings(s, next, nextBattingSide);
 }
 
-export function checkTimeUp(s: GameState): GameState {
-  if (!s.matchEndsAt) return s;
-  if (s.paused) return s;
-  if (Date.now() < s.matchEndsAt) return s;
-  if (s.phase === "match_over") return s;
-  // time up
-  if (s.currentInnings === 4) {
-    const target = computeTarget(s);
-    const inn4 = s.innings[4]!;
-    if (target !== null && inn4.runs === target - 1) {
-      return {
-        ...s,
-        phase: "match_over",
-        result: "Match Tied",
-        winner: "tie",
-      };
-    }
-  }
-  return {
-    ...s,
-    phase: "match_over",
-    result: "Match Drawn (time expired)",
-    winner: "draw",
-  };
+// ===== Stopwatches =====
+// Total match elapsed time, excluding time spent paused.
+export function matchElapsedMs(s: GameState): number {
+  if (!s.matchStartedAt) return 0;
+  const end = s.paused && s.pausedAt ? s.pausedAt : Date.now();
+  return Math.max(0, end - s.matchStartedAt - (s.pausedTotalMs ?? 0));
+}
+
+export function formatClock(ms: number): string {
+  const total = Math.floor(Math.max(0, ms) / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(sec).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+// Add a player's/side's active thinking time for one ball.
+export function addThinkTime(s: GameState, side: Side, player: string | null, ms: number): GameState {
+  const add = Math.max(0, Math.min(10 * 60_000, ms));
+  if (!add) return s;
+  const thinkMs = { host: 0, away: 0, ...(s.thinkMs ?? {}) };
+  thinkMs[side] += add;
+  const playerThinkMs = { ...(s.playerThinkMs ?? {}) };
+  if (player) playerThinkMs[player] = (playerThinkMs[player] ?? 0) + add;
+  return { ...s, thinkMs, playerThinkMs };
 }
 
 // Lead/trail label for innings 2-4
