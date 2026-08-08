@@ -641,7 +641,6 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const elapsed = matchElapsedMs(state);
   const myThink = state.thinkMs?.[mySide] ?? 0;
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
