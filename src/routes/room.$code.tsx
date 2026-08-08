@@ -11,7 +11,10 @@ import {
   startInnings,
   startNextInnings,
   declareInnings,
-  checkTimeUp,
+  matchElapsedMs,
+  formatClock,
+  addThinkTime,
+  OVERS_PER_INNINGS,
   totalsBySide,
   leadTrailLabel,
   finalizeResult,
@@ -134,7 +137,7 @@ function Room() {
                 pausedAt: null,
                 pausedReason: undefined,
                 disconnectedSide: null,
-                matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+                pausedTotalMs: (cur.pausedTotalMs ?? 0) + elapsed,
                 lastActionAt: Date.now() + 5000,
                 hostConnected: true,
                 awayConnected: true,
@@ -213,11 +216,6 @@ function Room() {
           applyAndBroadcast({ ...s, paused: true, pausedAt: Date.now(), pausedReason: "idle" });
           return;
         }
-        const ns = checkTimeUp(s);
-        if (ns !== s) {
-          applyAndBroadcast(ns);
-          return;
-        }
       }
       force((n) => n + 1); // refresh timer display on both sides
     }, 1000);
@@ -275,7 +273,7 @@ function Room() {
             pausedAt: null,
             pausedReason: undefined,
             disconnectedSide: null,
-            matchEndsAt: s.matchEndsAt ? s.matchEndsAt + elapsed : s.matchEndsAt,
+            pausedTotalMs: (s.pausedTotalMs ?? 0) + elapsed,
             lastActionAt: Date.now() + 5000,
           };
         }
@@ -340,10 +338,14 @@ function Room() {
         if (working.phase === "playing" && working.ballStartedAt && !working.paused) {
           const alreadyLocked = actualSide === "host" ? working.hostLocked : working.awayLocked;
           const elapsed = reported ?? Date.now() - working.ballStartedAt;
+          const innC = working.innings[working.currentInnings];
+          const isBatting = innC && actualSide === innC.battingSide;
+          const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
+          if (!alreadyLocked) {
+            // individual stopwatch: only counts the time this side actually took to move
+            working = addThinkTime(working, actualSide, player !== "?" ? player : null, elapsed);
+          }
           if (!alreadyLocked && elapsed >= BALL_TIMER_MS + BALL_TIMER_GRACE_MS) {
-            const innC = working.innings[working.currentInnings];
-            const isBatting = innC && actualSide === innC.battingSide;
-            const player = innC ? (isBatting ? innC.striker : innC.bowler) ?? "?" : "?";
             const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
             const seconds = Math.round(elapsed / 1000);
             const offences = { ...(working.timeOffences ?? {}) };
@@ -416,7 +418,7 @@ function Room() {
           paused: false,
           pausedAt: null,
           pausedReason: undefined,
-          matchEndsAt: cur.matchEndsAt ? cur.matchEndsAt + elapsed : cur.matchEndsAt,
+          pausedTotalMs: (cur.pausedTotalMs ?? 0) + elapsed,
           ballStartedAt: cur.ballStartedAt ? cur.ballStartedAt + elapsed : cur.ballStartedAt,
           lastActionAt: Date.now() + 5000, // 5s grace so idle check doesn't immediately re-pause
         });
@@ -639,10 +641,8 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const nowRef = state.paused && state.pausedAt ? state.pausedAt : Date.now();
-  const timeLeft = state.matchEndsAt ? Math.max(0, state.matchEndsAt - nowRef) : 30 * 60 * 1000;
-  const mm = Math.floor(timeLeft / 60000);
-  const ss = Math.floor((timeLeft % 60000) / 1000);
+  const elapsed = matchElapsedMs(state);
+  const myThink = state.thinkMs?.[mySide] ?? 0;
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
   const canPause = state.phase !== "lobby" && state.phase !== "toss" && state.phase !== "match_over";
@@ -660,11 +660,14 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
         </span>
         {inn && (
           <span>
-            Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver}
+            Over {inn.overNumber + (state.phase === "playing" ? 1 : 0)}.{inn.ballInOver} / {OVERS_PER_INNINGS}
           </span>
         )}
-        <span className={`font-mono ${timeLeft < 60000 ? "text-red-400" : ""} ${state.paused ? "text-amber-300" : ""}`}>
-          ⏱ {String(mm).padStart(2, "0")}:{String(ss).padStart(2, "0")}{state.paused ? " ⏸" : ""}
+        <span className={`font-mono ${state.paused ? "text-amber-300" : ""}`} title="Total match stopwatch">
+          ⏱ {formatClock(elapsed)}{state.paused ? " ⏸" : ""}
+        </span>
+        <span className="font-mono text-white/70" title="Your total playing time (waiting time excluded)">
+          🧠 {formatClock(myThink)}
         </span>
         {canPause && !state.paused && (
           <button onClick={() => send({ type: "pause" })} className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 hover:bg-amber-500/40">
@@ -1316,7 +1319,57 @@ function Scorecard({ state, code: _code, isHost: _isHost }: { state: GameState; 
           </div>
         );
       })}
+      <TimersPanel state={state} />
       <OffencesPanel state={state} />
+    </div>
+  );
+}
+
+function TimersPanel({ state }: { state: GameState }) {
+  const hostName = teamForSide(state, "host")?.name ?? "Host";
+  const awayName = teamForSide(state, "away")?.name ?? "Away";
+  const hostMs = state.thinkMs?.host ?? 0;
+  const awayMs = state.thinkMs?.away ?? 0;
+  const players = Object.entries(state.playerThinkMs ?? {}).filter(([, ms]) => ms > 0);
+  players.sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-6">
+      <h3 className="font-bold mb-3">⏱ Match Time</h3>
+      <div className="grid gap-3 sm:grid-cols-3 mb-4">
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">Total match stopwatch</div>
+          <div className="font-mono text-xl">{formatClock(matchElapsedMs(state))}</div>
+        </div>
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">{hostName} playing time</div>
+          <div className="font-mono text-xl">{formatClock(hostMs)}</div>
+        </div>
+        <div className="rounded-xl bg-white/5 p-3">
+          <div className="text-xs text-white/60">{awayName} playing time</div>
+          <div className="font-mono text-xl">{formatClock(awayMs)}</div>
+        </div>
+      </div>
+      {players.length > 0 && (
+        <table className="w-full text-sm">
+          <thead className="text-white/60">
+            <tr>
+              <th className="text-left py-1">Player</th>
+              <th className="text-right py-1">Time on the move</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map(([name, ms]) => (
+              <tr key={name} className="border-t border-white/5">
+                <td className="py-1">{name}</td>
+                <td className="py-1 text-right font-mono">{formatClock(ms)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div className="text-xs text-white/50 mt-2">
+        Individual timers count only the time a player took to play their moves — waiting and paused time is excluded.
+      </div>
     </div>
   );
 }
