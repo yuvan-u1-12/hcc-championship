@@ -325,9 +325,7 @@ function Room() {
           senderSide ?? (e.side === "host" || e.side === "away" ? e.side : null);
         if (!actualSide) return;
         if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
-        // late-input offence detection (does not affect gameplay)
-        // Trust the sender's locally-measured elapsed time (their own 20s window),
-        // falling back to host-side measurement only if it wasn't reported.
+        // accumulate this side's active thinking time for the ball
         let working = cur;
         const reported = typeof (e as any).elapsedMs === "number" && isFinite((e as any).elapsedMs)
           ? Math.max(0, Math.min(10 * 60_000, (e as any).elapsedMs as number))
@@ -1259,33 +1257,6 @@ function TimersPanel({ state }: { state: GameState }) {
       <div className="text-xs text-white/50 mt-2">
         Individual timers count only the time a player took to play their moves — waiting and paused time is excluded.
       </div>
-    </div>
-  );
-}
-
-function OffencesPanel({ state }: { state: GameState }) {
-  const entries = Object.entries(state.timeOffences ?? {}).filter(([, n]) => n > 0);
-  if (entries.length === 0) return null;
-  entries.sort((a, b) => b[1] - a[1]);
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-6">
-      <h3 className="font-bold mb-3">⏱ Time Offences (over 20s per ball)</h3>
-      <table className="w-full text-sm">
-        <thead className="text-white/60">
-          <tr>
-            <th className="text-left py-1">Player</th>
-            <th className="text-right py-1">Offences</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map(([name, n]) => (
-            <tr key={name} className="border-t border-white/5">
-              <td className="py-1">{name}</td>
-              <td className="py-1 text-right font-mono">{n}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
