@@ -33,9 +33,6 @@ export const Route = createFileRoute("/room/$code")({
 
 const MAX_CHAT_LEN = 200;
 const MAX_CHAT_HISTORY = 50;
-const BALL_TIMER_MS = 20_000;
-// tolerance for network/clock jitter before an offence is recorded
-const BALL_TIMER_GRACE_MS = 1_000;
 
 // ===== Local (per-client) ball clock =====
 // Each client measures the 20s window with its OWN clock, starting when it first
@@ -328,9 +325,7 @@ function Room() {
           senderSide ?? (e.side === "host" || e.side === "away" ? e.side : null);
         if (!actualSide) return;
         if (senderSide && senderSide !== e.side) return; // spoof attempt — drop
-        // late-input offence detection (does not affect gameplay)
-        // Trust the sender's locally-measured elapsed time (their own 20s window),
-        // falling back to host-side measurement only if it wasn't reported.
+        // accumulate this side's active thinking time for the ball
         let working = cur;
         const reported = typeof (e as any).elapsedMs === "number" && isFinite((e as any).elapsedMs)
           ? Math.max(0, Math.min(10 * 60_000, (e as any).elapsedMs as number))
@@ -345,34 +340,10 @@ function Room() {
             // individual stopwatch: only counts the time this side actually took to move
             working = addThinkTime(working, actualSide, player !== "?" ? player : null, elapsed);
           }
-          if (!alreadyLocked && elapsed >= BALL_TIMER_MS + BALL_TIMER_GRACE_MS) {
-            const teamName = teamForSide(working, actualSide)?.name ?? actualSide;
-            const seconds = Math.round(elapsed / 1000);
-            const offences = { ...(working.timeOffences ?? {}) };
-            if (player !== "?") offences[player] = (offences[player] ?? 0) + 1;
-            working = {
-              ...working,
-              timeOffences: offences,
-              offenceWarning: { side: actualSide, teamName, player, seconds, until: Date.now() + 2000 },
-            };
-          }
         }
         let s = lockInput(working, actualSide, e.value);
         if (s.hostLocked && s.awayLocked) {
-          // if a warning is active, delay resolution until it clears
-          const warnUntil = s.offenceWarning?.until ?? 0;
-          const delay = warnUntil - Date.now();
-          if (delay > 0) {
-            applyAndBroadcast(s);
-            setTimeout(() => {
-              const latest = stateRef.current;
-              if (!latest || !latest.hostLocked || !latest.awayLocked) return;
-              if (latest.phase !== "playing") return;
-              applyAndBroadcast(resolveBall({ ...latest, offenceWarning: null }));
-            }, delay + 50);
-            return;
-          }
-          s = resolveBall({ ...s, offenceWarning: null });
+          s = resolveBall(s);
         }
         applyAndBroadcast(s);
         return;
@@ -540,8 +511,6 @@ function RoomUI({
     <div className="min-h-screen flex flex-col bg-slate-950 text-white">
       <TopBar state={state} mySide={mySide} code={code} send={send} />
       {state.paused && <PauseOverlay state={state} mySide={mySide} send={send} />}
-      <OffenceWarning state={state} />
-      <BallTimerBadge state={state} />
       <main className="flex-1 overflow-y-auto">
         {state.phase === "match_over" ? (
           <Scorecard state={state} code={code} isHost={mySide === "host"} />
@@ -558,84 +527,7 @@ function RoomUI({
   );
 }
 
-// ============ Ball Timer Badge (per-user toggle) ============
-function useBallTimerVisible(): [boolean, (v: boolean) => void] {
-  const [visible, setVisible] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const v = window.localStorage.getItem("hcc:showBallTimer");
-    return v === null ? true : v === "1";
-  });
-  const set = (v: boolean) => {
-    setVisible(v);
-    try {
-      window.localStorage.setItem("hcc:showBallTimer", v ? "1" : "0");
-    } catch {}
-  };
-  return [visible, set];
-}
-
-function BallTimerBadge({ state }: { state: GameState }) {
-  const [visible] = useBallTimerVisible();
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 250);
-    return () => clearInterval(id);
-  }, []);
-  if (!visible) return null;
-  if (state.phase !== "playing" || !state.ballStartedAt) return null;
-  const local = localBallElapsed();
-  if (local === null) return null;
-  const elapsedMs = local;
-  const remaining = Math.max(0, BALL_TIMER_MS - elapsedMs);
-  const seconds = Math.ceil(remaining / 1000);
-  const overBy = elapsedMs > BALL_TIMER_MS ? Math.floor((elapsedMs - BALL_TIMER_MS) / 1000) : 0;
-  let color = "bg-emerald-500/80 text-emerald-950";
-  if (elapsedMs > BALL_TIMER_MS) color = "bg-red-600 text-white animate-pulse";
-  else if (elapsedMs > 15_000) color = "bg-orange-500 text-orange-950";
-  else if (elapsedMs > 10_000) color = "bg-yellow-500 text-yellow-950";
-  return (
-    <div className={`fixed left-3 bottom-24 z-30 px-3 py-1.5 rounded-full font-mono text-sm font-bold shadow-lg ${color}`}>
-      ⏱ {overBy > 0 ? `+${overBy}s` : `${seconds}s`}
-    </div>
-  );
-}
-
-function OffenceWarning({ state }: { state: GameState }) {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!state.offenceWarning) return;
-    const id = setInterval(() => setTick((n) => n + 1), 200);
-    return () => clearInterval(id);
-  }, [state.offenceWarning?.until]);
-  const w = state.offenceWarning;
-  if (!w || w.until <= Date.now()) return null;
-  return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="rounded-2xl bg-red-600 text-white px-8 py-6 max-w-md text-center shadow-2xl border-4 border-red-300">
-        <div className="text-2xl font-black mb-2">⚠️ TIME OFFENCE</div>
-        <div className="text-lg font-semibold">
-          {w.teamName} — <span className="underline">{w.player}</span>
-        </div>
-        <div className="text-sm opacity-90 mt-1">Took {w.seconds}s (limit 20s)</div>
-      </div>
-    </div>
-  );
-}
-
 // ============ Top Bar ============
-function BallTimerToggle() {
-  const [visible, setVisible] = useBallTimerVisible();
-  return (
-    <button
-      onClick={() => setVisible(!visible)}
-      title="Toggle 20s ball timer display"
-      className={`px-2 py-0.5 rounded text-xs ${visible ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/60"}`}
-    >
-      ⏱ {visible ? "on" : "off"}
-    </button>
-  );
-}
-
 function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side; code: string; send: (e: RoomEvent) => void }) {
   const hostTeam = getTeam(state.hostTeamId!);
   const awayTeam = getTeam(state.awayTeamId!);
@@ -671,7 +563,6 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
             ⏸ Pause
           </button>
         )}
-        <BallTimerToggle />
         {isIdle && <span className="text-amber-400 text-xs">⏸ idle</span>}
         <span className="text-white/70">
           {hostTeam?.id} {t.host} / {awayTeam?.id} {t.away}
@@ -1317,7 +1208,6 @@ function Scorecard({ state, code: _code, isHost: _isHost }: { state: GameState; 
         );
       })}
       <TimersPanel state={state} />
-      <OffencesPanel state={state} />
     </div>
   );
 }
@@ -1367,33 +1257,6 @@ function TimersPanel({ state }: { state: GameState }) {
       <div className="text-xs text-white/50 mt-2">
         Individual timers count only the time a player took to play their moves — waiting and paused time is excluded.
       </div>
-    </div>
-  );
-}
-
-function OffencesPanel({ state }: { state: GameState }) {
-  const entries = Object.entries(state.timeOffences ?? {}).filter(([, n]) => n > 0);
-  if (entries.length === 0) return null;
-  entries.sort((a, b) => b[1] - a[1]);
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 mb-6">
-      <h3 className="font-bold mb-3">⏱ Time Offences (over 20s per ball)</h3>
-      <table className="w-full text-sm">
-        <thead className="text-white/60">
-          <tr>
-            <th className="text-left py-1">Player</th>
-            <th className="text-right py-1">Offences</th>
-          </tr>
-        </thead>
-        <tbody>
-          {entries.map(([name, n]) => (
-            <tr key={name} className="border-t border-white/5">
-              <td className="py-1">{name}</td>
-              <td className="py-1 text-right font-mono">{n}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
