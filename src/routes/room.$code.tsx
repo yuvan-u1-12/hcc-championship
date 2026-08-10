@@ -533,7 +533,10 @@ function TopBar({ state, mySide, code, send }: { state: GameState; mySide: Side;
   const awayTeam = getTeam(state.awayTeamId!);
   const inn = state.currentInnings > 0 ? state.innings[state.currentInnings] : null;
   const t = totalsBySide(state);
-  const myThink = state.thinkMs?.[mySide] ?? 0;
+  const myLockedNow = mySide === "host" ? state.hostLocked : state.awayLocked;
+  const liveBall =
+    state.phase === "playing" && !state.paused && !myLockedNow ? localBallElapsed() ?? 0 : 0;
+  const myThink = (state.thinkMs?.[mySide] ?? 0) + liveBall;
   const phase = inn ? PHASE_OF_OVER(inn.overNumber) : "—";
   const isIdle = Date.now() - state.lastActionAt > 60000;
   const canPause = state.phase !== "lobby" && state.phase !== "toss" && state.phase !== "match_over";
