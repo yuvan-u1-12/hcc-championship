@@ -115,6 +115,18 @@ function Room() {
   // realtime
   useEffect(() => {
     if (!side) return;
+    let chan: any = null;
+    const pendingLeave: Record<string, ReturnType<typeof setTimeout>> = {};
+    const peerStillPresent = (peerSide: Side) => {
+      try {
+        const st = chan?.presenceState?.() ?? {};
+        return Object.values(st).some((arr: any) =>
+          (arr as any[]).some((p) => p?.side === peerSide && p?.clientId !== myClientIdRef.current),
+        );
+      } catch {
+        return false;
+      }
+    };
     const { channel, send: rawSend } = joinRoom(
       code,
       handleEvent,
@@ -123,6 +135,11 @@ function Room() {
         onJoin: ({ side: peerSide, clientId }) => {
           if (peerSide === sideRef.current) return;
           peerClientIdRef.current = clientId;
+          // a (re)join cancels any pending disconnect judgement for that side
+          if (pendingLeave[peerSide]) {
+            clearTimeout(pendingLeave[peerSide]);
+            delete pendingLeave[peerSide];
+          }
           // host: if paused due to disconnect of this side, auto-resume
           if (sideRef.current === "host") {
             const cur = stateRef.current;
@@ -148,22 +165,30 @@ function Room() {
         onLeave: ({ side: peerSide }) => {
           if (peerSide === sideRef.current) return;
           if (sideRef.current !== "host") return;
-          const cur = stateRef.current;
-          if (!cur) return;
-          if (cur.phase === "lobby" || cur.phase === "match_over") return;
-          if (cur.paused) return;
-          applyAndBroadcast({
-            ...cur,
-            paused: true,
-            pausedAt: Date.now(),
-            pausedReason: "disconnect",
-            disconnectedSide: peerSide,
-            awayConnected: peerSide === "away" ? false : cur.awayConnected,
-            hostConnected: peerSide === "host" ? false : cur.hostConnected,
-          });
+          if (pendingLeave[peerSide]) return;
+          // grace period: presence "leave" fires on brief socket blips / tab throttling,
+          // so only treat it as a real disconnect if they are still absent after 15s
+          pendingLeave[peerSide] = setTimeout(() => {
+            delete pendingLeave[peerSide];
+            if (peerStillPresent(peerSide)) return;
+            const cur = stateRef.current;
+            if (!cur) return;
+            if (cur.phase === "lobby" || cur.phase === "match_over") return;
+            if (cur.paused) return;
+            applyAndBroadcast({
+              ...cur,
+              paused: true,
+              pausedAt: Date.now(),
+              pausedReason: "disconnect",
+              disconnectedSide: peerSide,
+              awayConnected: peerSide === "away" ? false : cur.awayConnected,
+              hostConnected: peerSide === "host" ? false : cur.hostConnected,
+            });
+          }, 15000);
         },
       },
     );
+    chan = channel;
     // wrap send so every outgoing event carries our clientId
     const send = (e: RoomEvent) => rawSend({ ...e, _from: myClientIdRef.current } as RoomEvent);
     sendRef.current = send;
@@ -171,9 +196,20 @@ function Room() {
     setTimeout(() => {
       send({ type: "hello", side: sideRef.current!, clientId: myClientIdRef.current, teamId });
     }, 300);
-    return () => leaveRoom(channel);
+    // heartbeat: re-assert our presence so transient blips don't look like a leave
+    const hb = setInterval(() => {
+      try {
+        channel.track({ side: sideRef.current!, clientId: myClientIdRef.current });
+      } catch {}
+    }, 20000);
+    return () => {
+      clearInterval(hb);
+      Object.values(pendingLeave).forEach(clearTimeout);
+      leaveRoom(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [side, code]);
+
 
   // persist on every change
   useEffect(() => {
