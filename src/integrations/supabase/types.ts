@@ -14,16 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      hcc_players: {
+        Row: {
+          base_ovr: number | null
+          captaincy: number | null
+          confidence: number | null
+          created_at: string
+          current_ovr: number | null
+          fielding: number | null
+          home_venue: string | null
+          id: string
+          is_captain: boolean
+          is_vice_captain: boolean
+          name: string
+          ratings_are_placeholder: boolean
+          risk: number | null
+          role: string
+          squad_order: number
+          team_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_ovr?: number | null
+          captaincy?: number | null
+          confidence?: number | null
+          created_at?: string
+          current_ovr?: number | null
+          fielding?: number | null
+          home_venue?: string | null
+          id: string
+          is_captain?: boolean
+          is_vice_captain?: boolean
+          name: string
+          ratings_are_placeholder?: boolean
+          risk?: number | null
+          role: string
+          squad_order?: number
+          team_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_ovr?: number | null
+          captaincy?: number | null
+          confidence?: number | null
+          created_at?: string
+          current_ovr?: number | null
+          fielding?: number | null
+          home_venue?: string | null
+          id?: string
+          is_captain?: boolean
+          is_vice_captain?: boolean
+          name?: string
+          ratings_are_placeholder?: boolean
+          risk?: number | null
+          role?: string
+          squad_order?: number
+          team_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_players_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_teams: {
+        Row: {
+          accent: string | null
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          season: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          accent?: string | null
+          color?: string | null
+          created_at?: string
+          id: string
+          name: string
+          season?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          accent?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          season?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +274,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
