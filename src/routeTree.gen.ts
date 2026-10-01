@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlayersRouteImport } from './routes/players'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RoomCodeRouteImport } from './routes/room.$code'
 
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -25,32 +31,43 @@ const RoomCodeRoute = RoomCodeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/players': typeof PlayersRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/players': typeof PlayersRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/players': typeof PlayersRoute
   '/room/$code': typeof RoomCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/room/$code'
+  fullPaths: '/' | '/players' | '/room/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/room/$code'
-  id: '__root__' | '/' | '/room/$code'
+  to: '/' | '/players' | '/room/$code'
+  id: '__root__' | '/' | '/players' | '/room/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PlayersRoute: typeof PlayersRoute
   RoomCodeRoute: typeof RoomCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PlayersRoute: PlayersRoute,
   RoomCodeRoute: RoomCodeRoute,
 }
 export const routeTree = rootRouteImport
