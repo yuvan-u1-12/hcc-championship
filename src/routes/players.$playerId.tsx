@@ -62,7 +62,7 @@ function ProfilePage() {
                   {isCap && <span className="ml-2 align-middle px-2 py-0.5 rounded bg-amber-400 text-amber-950 text-xs font-bold">CAPTAIN</span>}
                   {player.is_vice_captain && <span className="ml-2 text-sm">(VC)</span>}
                 </div>
-                <div className="text-sm opacity-90">Role: {player.role} · Captain: {isCap ? "Yes" : "No"}</div>
+                <div className="text-sm opacity-90">{player.role}{isCap ? " • CAPTAIN" : ""}</div>
               </div>
               <div className="bg-white/5 px-5 py-3 text-xs text-white/60 flex flex-wrap gap-x-6 gap-y-1">
                 <span>Current team: <b className="text-white/90">{team ? team.name : "—"}</b></span>
@@ -83,10 +83,9 @@ function ProfilePage() {
             <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
               <h2 className="font-bold mb-1">Separate attributes</h2>
               <p className="text-xs text-white/50 mb-4">These are independent attributes. They are not part of OVR.</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                 <Stat label="Confidence" sub="Execution reliability" value={show(player.confidence)} />
                 <Stat label="Fielding" sub="Defensive actions" value={show(player.fielding)} />
-                <Stat label="Captaincy" sub={isCap ? "Team captain · tactical leadership" : "Captains only"} value={isCap ? show(player.captaincy) : "—"} />
               </div>
             </section>
 
