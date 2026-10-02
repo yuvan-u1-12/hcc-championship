@@ -24,11 +24,9 @@ export type Database = {
           fielding: number | null
           home_venue: string | null
           id: string
-          is_captain: boolean
           is_vice_captain: boolean
           name: string
           ratings_are_placeholder: boolean
-          risk: number | null
           role: string
           squad_order: number
           team_id: string | null
@@ -43,11 +41,9 @@ export type Database = {
           fielding?: number | null
           home_venue?: string | null
           id: string
-          is_captain?: boolean
           is_vice_captain?: boolean
           name: string
           ratings_are_placeholder?: boolean
-          risk?: number | null
           role: string
           squad_order?: number
           team_id?: string | null
@@ -62,11 +58,9 @@ export type Database = {
           fielding?: number | null
           home_venue?: string | null
           id?: string
-          is_captain?: boolean
           is_vice_captain?: boolean
           name?: string
           ratings_are_placeholder?: boolean
-          risk?: number | null
           role?: string
           squad_order?: number
           team_id?: string | null
@@ -85,6 +79,7 @@ export type Database = {
       hcc_teams: {
         Row: {
           accent: string | null
+          captain_player_id: string | null
           color: string | null
           created_at: string
           id: string
@@ -95,6 +90,7 @@ export type Database = {
         }
         Insert: {
           accent?: string | null
+          captain_player_id?: string | null
           color?: string | null
           created_at?: string
           id: string
@@ -105,6 +101,7 @@ export type Database = {
         }
         Update: {
           accent?: string | null
+          captain_player_id?: string | null
           color?: string | null
           created_at?: string
           id?: string
@@ -113,7 +110,15 @@ export type Database = {
           sort_order?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hcc_teams_captain_player_id_fkey"
+            columns: ["captain_player_id"]
+            isOneToOne: true
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

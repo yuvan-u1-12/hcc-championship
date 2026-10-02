@@ -7,7 +7,7 @@ export const Route = createFileRoute("/players/")({
   head: () => ({
     meta: [
       { title: "HCC Players Database" },
-      { name: "description", content: "Browse HCC players by team with Current OVR, confidence, risk, fielding, captaincy and home venue." },
+      { name: "description", content: "Browse HCC players by team with Current OVR, confidence, fielding, captaincy and home venue." },
       { property: "og:title", content: "HCC Players Database" },
       { property: "og:description", content: "Browse HCC players by team and view player profiles." },
       { property: "og:type", content: "website" },
@@ -22,7 +22,6 @@ type T = Tables<"hcc_teams">;
 const COLS: [keyof P, string][] = [
   ["current_ovr", "Current OVR"],
   ["confidence", "Confidence"],
-  ["risk", "Risk"],
   ["fielding", "Fielding"],
   ["captaincy", "Captaincy"],
   ["home_venue", "Home Venue"],
@@ -104,21 +103,26 @@ function PlayersPage() {
                 </tr>
               </thead>
               <tbody>
-                {g.list.map((p) => (
+                {g.list.map((p) => {
+                  const isCap = !!g.team && g.team.captain_player_id === p.id;
+                  return (
                   <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
                     <td className="px-3 py-1.5">
                       <Link to="/players/$playerId" params={{ playerId: p.id }} className="hover:text-emerald-300 font-medium">
                         {p.name}
                       </Link>
-                      {p.is_captain && <span className="ml-1 text-[10px] text-amber-300">C</span>}
+                      {isCap && <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-400 text-amber-950 text-[10px] font-bold">CAPTAIN</span>}
                       {p.is_vice_captain && <span className="ml-1 text-[10px] text-amber-300">VC</span>}
                     </td>
                     <td className="px-3 text-white/70 whitespace-nowrap">{p.role}</td>
                     {COLS.map(([k]) => (
-                      <td key={k} className="px-3 text-center text-white/80">{(p[k] as string | number | null) ?? "—"}</td>
+                      <td key={k} className="px-3 text-center text-white/80">
+                        {k === "captaincy" && !isCap ? "—" : ((p[k] as string | number | null) ?? "—")}
+                      </td>
                     ))}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </section>
