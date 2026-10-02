@@ -7,7 +7,7 @@ export const Route = createFileRoute("/players/")({
   head: () => ({
     meta: [
       { title: "HCC Players Database" },
-      { name: "description", content: "Browse HCC players by team with Current OVR, confidence, risk, fielding, captaincy and home venue." },
+      { name: "description", content: "Browse HCC players by team with Current OVR, confidence, fielding, captaincy and home venue." },
       { property: "og:title", content: "HCC Players Database" },
       { property: "og:description", content: "Browse HCC players by team and view player profiles." },
       { property: "og:type", content: "website" },
@@ -121,7 +121,8 @@ function PlayersPage() {
                       </td>
                     ))}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </section>
