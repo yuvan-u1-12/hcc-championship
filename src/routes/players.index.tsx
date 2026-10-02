@@ -23,7 +23,6 @@ const COLS: [keyof P, string][] = [
   ["current_ovr", "Current OVR"],
   ["confidence", "Confidence"],
   ["fielding", "Fielding"],
-  ["captaincy", "Captaincy"],
   ["home_venue", "Home Venue"],
 ];
 
@@ -117,7 +116,7 @@ function PlayersPage() {
                     <td className="px-3 text-white/70 whitespace-nowrap">{p.role}</td>
                     {COLS.map(([k]) => (
                       <td key={k} className="px-3 text-center text-white/80">
-                        {k === "captaincy" && !isCap ? "—" : ((p[k] as string | number | null) ?? "—")}
+                        {(p[k] as string | number | null) ?? "—"}
                       </td>
                     ))}
                   </tr>
