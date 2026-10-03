@@ -8,6 +8,13 @@
       "when": 1790945546433,
       "tag": "0000_retire_player_captaincy",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791028561966,
+      "tag": "0001_match_data_foundation",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,396 @@ export type Database = {
   }
   public: {
     Tables: {
+      hcc_ball_events: {
+        Row: {
+          ball_no: number
+          bat_number: number
+          batting_team_id: string
+          bowl_number: number
+          bowler_id: string
+          bowling_team_id: string
+          id: string
+          innings_no: number
+          is_square: boolean
+          is_wicket: boolean
+          match_id: string
+          non_striker_id: string | null
+          over_no: number
+          phase: string
+          recorded_at: string
+          runs: number
+          striker_id: string
+        }
+        Insert: {
+          ball_no: number
+          bat_number: number
+          batting_team_id: string
+          bowl_number: number
+          bowler_id: string
+          bowling_team_id: string
+          id: string
+          innings_no: number
+          is_square?: boolean
+          is_wicket?: boolean
+          match_id: string
+          non_striker_id?: string | null
+          over_no: number
+          phase: string
+          recorded_at?: string
+          runs: number
+          striker_id: string
+        }
+        Update: {
+          ball_no?: number
+          bat_number?: number
+          batting_team_id?: string
+          bowl_number?: number
+          bowler_id?: string
+          bowling_team_id?: string
+          id?: string
+          innings_no?: number
+          is_square?: boolean
+          is_wicket?: boolean
+          match_id?: string
+          non_striker_id?: string | null
+          over_no?: number
+          phase?: string
+          recorded_at?: string
+          runs?: number
+          striker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_ball_events_batting_team_id_fkey"
+            columns: ["batting_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_ball_events_bowler_id_fkey"
+            columns: ["bowler_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_ball_events_bowling_team_id_fkey"
+            columns: ["bowling_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_ball_events_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_ball_events_non_striker_id_fkey"
+            columns: ["non_striker_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_ball_events_striker_id_fkey"
+            columns: ["striker_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_fixtures: {
+        Row: {
+          away_team_id: string
+          created_at: string
+          home_team_id: string
+          id: string
+          match_id: string | null
+          scheduled_at: string | null
+          series_id: string | null
+          venue: string | null
+        }
+        Insert: {
+          away_team_id: string
+          created_at?: string
+          home_team_id: string
+          id?: string
+          match_id?: string | null
+          scheduled_at?: string | null
+          series_id?: string | null
+          venue?: string | null
+        }
+        Update: {
+          away_team_id?: string
+          created_at?: string
+          home_team_id?: string
+          id?: string
+          match_id?: string | null
+          scheduled_at?: string | null
+          series_id?: string | null
+          venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_fixtures_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_fixtures_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_fixtures_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "hcc_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_fixtures_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_innings: {
+        Row: {
+          all_out: boolean
+          batting_team_id: string
+          bowling_team_id: string
+          declared: boolean
+          innings_no: number
+          legal_balls: number
+          match_id: string
+          runs: number
+          wickets: number
+        }
+        Insert: {
+          all_out?: boolean
+          batting_team_id: string
+          bowling_team_id: string
+          declared?: boolean
+          innings_no: number
+          legal_balls?: number
+          match_id: string
+          runs?: number
+          wickets?: number
+        }
+        Update: {
+          all_out?: boolean
+          batting_team_id?: string
+          bowling_team_id?: string
+          declared?: boolean
+          innings_no?: number
+          legal_balls?: number
+          match_id?: string
+          runs?: number
+          wickets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_innings_batting_team_id_fkey"
+            columns: ["batting_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_innings_bowling_team_id_fkey"
+            columns: ["bowling_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_innings_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_matches: {
+        Row: {
+          away_team_id: string
+          completed_at: string | null
+          created_at: string
+          home_team_id: string
+          id: string
+          played_at: string
+          result_text: string | null
+          result_type: string | null
+          room_code: string | null
+          series_id: string | null
+          source: string
+          status: string
+          toss_choice: string | null
+          toss_winner_team_id: string | null
+          venue: string | null
+          winner_team_id: string | null
+        }
+        Insert: {
+          away_team_id: string
+          completed_at?: string | null
+          created_at?: string
+          home_team_id: string
+          id: string
+          played_at?: string
+          result_text?: string | null
+          result_type?: string | null
+          room_code?: string | null
+          series_id?: string | null
+          source?: string
+          status?: string
+          toss_choice?: string | null
+          toss_winner_team_id?: string | null
+          venue?: string | null
+          winner_team_id?: string | null
+        }
+        Update: {
+          away_team_id?: string
+          completed_at?: string | null
+          created_at?: string
+          home_team_id?: string
+          id?: string
+          played_at?: string
+          result_text?: string | null
+          result_type?: string | null
+          room_code?: string | null
+          series_id?: string | null
+          source?: string
+          status?: string
+          toss_choice?: string | null
+          toss_winner_team_id?: string | null
+          venue?: string | null
+          winner_team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_matches_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_series"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_matches_toss_winner_team_id_fkey"
+            columns: ["toss_winner_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_matches_winner_team_id_fkey"
+            columns: ["winner_team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_player_match_entries: {
+        Row: {
+          balls_bowled: number | null
+          balls_faced: number | null
+          dismissed: boolean | null
+          dismissed_by_id: string | null
+          id: string
+          innings_no: number
+          match_id: string
+          player_id: string
+          runs: number | null
+          runs_conceded: number | null
+          team_id: string
+          wickets: number | null
+        }
+        Insert: {
+          balls_bowled?: number | null
+          balls_faced?: number | null
+          dismissed?: boolean | null
+          dismissed_by_id?: string | null
+          id?: string
+          innings_no: number
+          match_id: string
+          player_id: string
+          runs?: number | null
+          runs_conceded?: number | null
+          team_id: string
+          wickets?: number | null
+        }
+        Update: {
+          balls_bowled?: number | null
+          balls_faced?: number | null
+          dismissed?: boolean | null
+          dismissed_by_id?: string | null
+          id?: string
+          innings_no?: number
+          match_id?: string
+          player_id?: string
+          runs?: number | null
+          runs_conceded?: number | null
+          team_id?: string
+          wickets?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_player_match_entries_dismissed_by_id_fkey"
+            columns: ["dismissed_by_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_player_match_entries_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_player_match_entries_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_player_match_entries_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hcc_players: {
         Row: {
           base_ovr: number | null
@@ -72,6 +462,41 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hcc_series: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          parent_id: string | null
+          season: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          kind?: string
+          name: string
+          parent_id?: string | null
+          season?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          parent_id?: string | null
+          season?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_series_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_series"
             referencedColumns: ["id"]
           },
         ]
