@@ -284,6 +284,7 @@ export function resolveBall(s: GameState): GameState {
     isSquare: outcome.isSquare,
     isWicket: outcome.out,
     striker,
+    nonStriker: inn.nonStriker,
     bowler,
   };
   inn.balls.push(log);

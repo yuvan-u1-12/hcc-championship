@@ -52,6 +52,7 @@ export interface BallLog {
   isSquare: boolean;
   isWicket: boolean;
   striker: string;
+  nonStriker?: string | null; // recorded for ball-event persistence only
   bowler: string;
 }
 
