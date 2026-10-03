@@ -26,6 +26,8 @@ import type { GameState, Side, BatStats, BowlStats } from "@/lib/gameTypes";
 import { PHASE_OF_OVER } from "@/lib/gameTypes";
 import { joinRoom, leaveRoom, type RoomEvent } from "@/lib/realtime";
 import { loadSide, loadState, saveSide, saveState } from "@/lib/storage";
+import { extractBallEvents, extractInnings, matchIdFor } from "@/lib/matchEvents";
+import { recordMatchProgress } from "@/lib/matchRecord.functions";
 
 export const Route = createFileRoute("/room/$code")({
   component: Room,
@@ -216,6 +218,43 @@ function Room() {
     if (state) saveState(code, state, sideRef.current);
     stateRef.current = state;
   }, [state, code]);
+
+  // Host persists completed balls as ball events (read-only use of engine output).
+  const syncedRef = useRef<{ ids: Set<string>; sig: string; busy: boolean; again: boolean }>({ ids: new Set(), sig: "", busy: false, again: false });
+  useEffect(() => {
+    if (side !== "host" || !state || !state.hostTeamId || !state.awayTeamId) return;
+    const matchId = matchIdFor(state);
+    if (!matchId) return;
+    const run = async () => {
+      const s = stateRef.current;
+      if (!s) return;
+      const sync = syncedRef.current;
+      if (sync.busy) { sync.again = true; return; }
+      const events = extractBallEvents(s).filter((e) => !sync.ids.has(e.id));
+      const final = s.phase === "match_over";
+      const innings = extractInnings(s);
+      const sig = `${matchId}|${JSON.stringify(innings)}|${final}|${s.tossWinner ?? ""}`;
+      if (!events.length && sig === sync.sig) return;
+      sync.busy = true;
+      try {
+        await recordMatchProgress({
+          data: {
+            matchId, roomCode: s.roomCode, hostTeamId: s.hostTeamId!, awayTeamId: s.awayTeamId!,
+            tossWinner: s.tossWinner, tossChoice: s.tossChoice, innings, events,
+            final: final ? { winner: s.winner, result: s.result } : undefined,
+          },
+        });
+        events.forEach((e) => sync.ids.add(e.id));
+        sync.sig = sig;
+      } catch (err) {
+        console.warn("[match-record] save failed, will retry", err);
+      } finally {
+        sync.busy = false;
+        if (sync.again) { sync.again = false; void run(); }
+      }
+    };
+    void run();
+  }, [state, side]);
 
   // periodic time check (host runs engine; both sides force tick for timer)
   useEffect(() => {
