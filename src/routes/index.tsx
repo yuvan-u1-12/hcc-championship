@@ -1,13 +1,19 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { TEAMS } from "@/lib/teams";
 import { saveSide } from "@/lib/storage";
+import { getApprovedFixtures } from "@/lib/fixtures.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "HCC — Hand Cricket Championship" },
       { name: "description", content: "Real-time multiplayer 4-innings hand cricket." },
+      { property: "og:title", content: "HCC — Hand Cricket Championship" },
+      { property: "og:description", content: "Real-time multiplayer 4-innings hand cricket." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Lobby,
@@ -17,10 +23,26 @@ function genRoom() {
   return Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 
+type Fixture = { id: string; home_team_id: string; away_team_id: string; scheduled_at: string | null; venue: string | null };
+
 function Lobby() {
   const navigate = useNavigate();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<"practice" | "tournament">("practice");
+  const [fixtures, setFixtures] = useState<Fixture[] | null>(null);
+  const fetchFixtures = useServerFn(getApprovedFixtures);
+
+  const checkTournament = async () => {
+    setMode("tournament");
+    setFixtures(null);
+    if (!teamId) return;
+    try {
+      setFixtures(await fetchFixtures({ data: { teamId } }));
+    } catch {
+      setFixtures([]);
+    }
+  };
 
   const create = () => {
     if (!teamId) return;
@@ -143,6 +165,7 @@ function Lobby() {
             </button>
           </div>
         </div>
+        )}
       </main>
     </div>
   );
