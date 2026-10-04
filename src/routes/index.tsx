@@ -75,7 +75,7 @@ function Lobby() {
           {TEAMS.map((t) => (
             <button
               key={t.id}
-              onClick={() => { setTeamId(t.id); setFixtures(null); }}
+              onClick={() => { setTeamId(t.id); setFixtures(null); setMode("practice"); }}
               className={`rounded-xl p-4 text-left border-2 transition-all ${
                 teamId === t.id
                   ? "border-emerald-400 scale-105 shadow-lg shadow-emerald-500/30"
