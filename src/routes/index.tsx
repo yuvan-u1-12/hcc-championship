@@ -1,13 +1,19 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { TEAMS } from "@/lib/teams";
 import { saveSide } from "@/lib/storage";
+import { getApprovedFixtures } from "@/lib/fixtures.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "HCC — Hand Cricket Championship" },
       { name: "description", content: "Real-time multiplayer 4-innings hand cricket." },
+      { property: "og:title", content: "HCC — Hand Cricket Championship" },
+      { property: "og:description", content: "Real-time multiplayer 4-innings hand cricket." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Lobby,
@@ -17,10 +23,26 @@ function genRoom() {
   return Math.random().toString(36).slice(2, 7).toUpperCase();
 }
 
+type Fixture = { id: string; home_team_id: string; away_team_id: string; scheduled_at: string | null; venue: string | null };
+
 function Lobby() {
   const navigate = useNavigate();
   const [teamId, setTeamId] = useState<string | null>(null);
   const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<"practice" | "tournament">("practice");
+  const [fixtures, setFixtures] = useState<Fixture[] | null>(null);
+  const fetchFixtures = useServerFn(getApprovedFixtures);
+
+  const checkTournament = async () => {
+    setMode("tournament");
+    setFixtures(null);
+    if (!teamId) return;
+    try {
+      setFixtures(await fetchFixtures({ data: { teamId } }));
+    } catch {
+      setFixtures([]);
+    }
+  };
 
   const create = () => {
     if (!teamId) return;
@@ -53,7 +75,7 @@ function Lobby() {
           {TEAMS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTeamId(t.id)}
+              onClick={() => { setTeamId(t.id); setFixtures(null); setMode("practice"); }}
               className={`rounded-xl p-4 text-left border-2 transition-all ${
                 teamId === t.id
                   ? "border-emerald-400 scale-105 shadow-lg shadow-emerald-500/30"
@@ -67,7 +89,49 @@ function Lobby() {
           ))}
         </div>
 
+        <h2 className="text-lg font-semibold mb-3">2. Choose match mode</h2>
+        <div className="grid sm:grid-cols-2 gap-3 mb-6">
+          <button
+            onClick={() => setMode("practice")}
+            className={`rounded-xl p-4 text-left border-2 ${mode === "practice" ? "border-emerald-400 bg-emerald-500/10" : "border-white/10 hover:border-white/30"}`}
+          >
+            <div className="font-bold">Practice</div>
+            <div className="text-xs text-white/60">Normal match. Does not count toward tournament data.</div>
+          </button>
+          <button
+            onClick={checkTournament}
+            className={`rounded-xl p-4 text-left border-2 ${mode === "tournament" ? "border-amber-400 bg-amber-500/10" : "border-white/10 hover:border-white/30"}`}
+          >
+            <div className="font-bold">Tournament</div>
+            <div className="text-xs text-white/60">Official match. Needs an admin-approved fixture for your team.</div>
+          </button>
+        </div>
+
+        {mode === "tournament" ? (
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+            {!teamId ? (
+              <p className="text-sm text-white/70">Pick your team first to check for tournament matches.</p>
+            ) : fixtures === null ? (
+              <p className="text-sm text-white/70">Checking for approved tournament matches…</p>
+            ) : fixtures.length === 0 ? (
+              <p className="text-sm font-semibold text-amber-300">No approved tournament match is currently available.</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-white/70">Approved tournament fixtures for {teamId}:</p>
+                {fixtures.map((f) => (
+                  <div key={f.id} className="rounded-lg border border-white/10 px-3 py-2 text-sm">
+                    {f.home_team_id} vs {f.away_team_id}
+                    {f.venue ? ` · ${f.venue}` : ""}
+                    {f.scheduled_at ? ` · ${new Date(f.scheduled_at).toLocaleString()}` : ""}
+                  </div>
+                ))}
+                <p className="text-xs text-white/50">Tournament matches are started by the admin for the scheduled fixture.</p>
+              </div>
+            )}
+          </div>
+        ) : (
         <div className="grid sm:grid-cols-2 gap-6">
+
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
             <h3 className="font-bold mb-2">Create Room</h3>
             <p className="text-sm text-white/60 mb-4">
@@ -101,6 +165,7 @@ function Lobby() {
             </button>
           </div>
         </div>
+        )}
       </main>
     </div>
   );
