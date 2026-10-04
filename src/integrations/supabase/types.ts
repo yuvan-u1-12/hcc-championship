@@ -119,6 +119,7 @@ export type Database = {
       }
       hcc_fixtures: {
         Row: {
+          approved: boolean
           away_team_id: string
           created_at: string
           home_team_id: string
@@ -129,6 +130,7 @@ export type Database = {
           venue: string | null
         }
         Insert: {
+          approved?: boolean
           away_team_id: string
           created_at?: string
           home_team_id: string
@@ -139,6 +141,7 @@ export type Database = {
           venue?: string | null
         }
         Update: {
+          approved?: boolean
           away_team_id?: string
           created_at?: string
           home_team_id?: string
@@ -242,8 +245,11 @@ export type Database = {
           away_team_id: string
           completed_at: string | null
           created_at: string
+          fixture_id: string | null
           home_team_id: string
           id: string
+          is_official: boolean
+          match_type: string
           played_at: string
           result_text: string | null
           result_type: string | null
@@ -260,8 +266,11 @@ export type Database = {
           away_team_id: string
           completed_at?: string | null
           created_at?: string
+          fixture_id?: string | null
           home_team_id: string
           id: string
+          is_official?: boolean
+          match_type?: string
           played_at?: string
           result_text?: string | null
           result_type?: string | null
@@ -278,8 +287,11 @@ export type Database = {
           away_team_id?: string
           completed_at?: string | null
           created_at?: string
+          fixture_id?: string | null
           home_team_id?: string
           id?: string
+          is_official?: boolean
+          match_type?: string
           played_at?: string
           result_text?: string | null
           result_type?: string | null
@@ -298,6 +310,13 @@ export type Database = {
             columns: ["away_team_id"]
             isOneToOne: false
             referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_matches_fixture_id_fkey"
+            columns: ["fixture_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_fixtures"
             referencedColumns: ["id"]
           },
           {
