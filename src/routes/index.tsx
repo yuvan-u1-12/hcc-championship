@@ -65,6 +65,7 @@ function Lobby() {
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/players" className="text-sm px-3 py-1.5 rounded-lg border border-white/15 hover:bg-white/10">Players</Link>
+          <Link to="/auth" className="text-sm px-3 py-1.5 rounded-lg border border-white/15 hover:bg-white/10">Admin</Link>
         </div>
 
       </header>
