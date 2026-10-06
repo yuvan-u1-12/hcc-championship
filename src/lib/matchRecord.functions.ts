@@ -57,6 +57,8 @@ const Input = z.object({
 export const recordMatchProgress = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => Input.parse(d))
   .handler(async ({ data }) => {
+    // Practice squads are not tournament identities — never persisted to tournament tables.
+    if (data.hostTeamId.startsWith("PRACTICE-") || data.awayTeamId.startsWith("PRACTICE-")) return { ok: true, skipped: true };
     const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
     const teamOf = (s: "host" | "away") => (s === "host" ? data.hostTeamId : data.awayTeamId);
     const other = (s: "host" | "away") => (s === "host" ? data.awayTeamId : data.hostTeamId);

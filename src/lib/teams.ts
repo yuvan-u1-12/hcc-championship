@@ -181,7 +181,27 @@ export const TEAMS: Team[] = [
   },
 ];
 
-export const getTeam = (id: string): Team | undefined => TEAMS.find((t) => t.id === id);
+// Fixed Practice squads — independent of the tournament. Placeholder names only.
+const practiceSquad = (side: "Home" | "Away"): Player[] => [
+  { name: `${side} Bat 1`, role: "Bat", captain: true },
+  { name: `${side} Bat 2`, role: "Bat" },
+  { name: `${side} Keeper`, role: "WK" },
+  { name: `${side} Pace AR`, role: "Pace AR" },
+  { name: `${side} Spin AR`, role: "Spin AR" },
+  { name: `${side} Pacer 1`, role: "Pace Bowler" },
+  { name: `${side} Spinner`, role: "Spin Bowler" },
+  { name: `${side} Pacer 2`, role: "Pace Bowler" },
+];
+export const PRACTICE_HOME_ID = "PRACTICE-HOME";
+export const PRACTICE_AWAY_ID = "PRACTICE-AWAY";
+export const PRACTICE_TEAMS: Team[] = [
+  { id: PRACTICE_HOME_ID, name: "Practice Home", color: "#065f46", accent: "#10b981", players: practiceSquad("Home") },
+  { id: PRACTICE_AWAY_ID, name: "Practice Away", color: "#312e81", accent: "#6366f1", players: practiceSquad("Away") },
+];
+export const isPracticeTeam = (id: string | null | undefined) => !!id && id.startsWith("PRACTICE-");
+
+export const getTeam = (id: string): Team | undefined =>
+  TEAMS.find((t) => t.id === id) ?? PRACTICE_TEAMS.find((t) => t.id === id);
 export const getEligibleBatters = (t: Team): Player[] => t.players.slice(0, 5);
 // Only all-rounders and pure bowlers can bowl. Pure batters (Bat) and wicket-keepers (WK) cannot.
 export const getEligibleBowlers = (t: Team): Player[] =>
