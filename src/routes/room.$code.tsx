@@ -1,6 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { TEAMS, getTeam, getEligibleBatters, getEligibleBowlers } from "@/lib/teams";
+import { TEAMS, PRACTICE_AWAY_ID, PRACTICE_HOME_ID, getTeam, getEligibleBatters, getEligibleBowlers } from "@/lib/teams";
 import {
   createInitialState,
   setOpeners,
@@ -92,7 +92,8 @@ function Room() {
     const resolvedSide: Side = ident.side ?? cached?.side ?? "away";
     const resolvedTeam =
       ident.teamId ??
-      (cached ? (resolvedSide === "host" ? cached.state.hostTeamId : cached.state.awayTeamId) : null);
+      (cached ? (resolvedSide === "host" ? cached.state.hostTeamId : cached.state.awayTeamId) : null) ??
+      (resolvedSide === "away" ? PRACTICE_AWAY_ID : PRACTICE_HOME_ID);
     setSide(resolvedSide);
     sideRef.current = resolvedSide;
     setTeamId(resolvedTeam);
