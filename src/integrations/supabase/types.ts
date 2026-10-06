@@ -564,6 +564,72 @@ export type Database = {
           },
         ]
       }
+      hcc_tournament_identities: {
+        Row: {
+          claim_code_hash: string | null
+          claim_code_issued_at: string | null
+          claim_code_used_at: string | null
+          claim_status: string
+          claimed_at: string | null
+          created_at: string
+          display_name: string
+          id: string
+          pin_hash: string | null
+          pin_set_at: string | null
+          player_id: string
+          season: string
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          claim_code_hash?: string | null
+          claim_code_issued_at?: string | null
+          claim_code_used_at?: string | null
+          claim_status?: string
+          claimed_at?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          player_id: string
+          season?: string
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          claim_code_hash?: string | null
+          claim_code_issued_at?: string | null
+          claim_code_used_at?: string | null
+          claim_status?: string
+          claimed_at?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          pin_hash?: string | null
+          pin_set_at?: string | null
+          player_id?: string
+          season?: string
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hcc_tournament_identities_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "hcc_players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hcc_tournament_identities_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hcc_teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
